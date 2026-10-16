@@ -117,14 +117,18 @@ export async function fetchCurrentQuestion(connectionId) {
  * @param {string} answer - One of 'A','B','C','D'
  * @returns {{ ok, data: { correct, submitted_answer, correct_answer, explanation, current_score, quiz_completed } }}
  */
-export async function submitAnswer(connectionId, questionId, answer) {
+export async function submitAnswer(connectionId, questionId, answer, studentName = null) {
+  const payload = {
+    connection_id: connectionId,
+    question_id: questionId,
+    answer: answer,
+  };
+  if (studentName) {
+    payload.student_name = studentName;
+  }
   return request("/quiz/answer", {
     method: "POST",
-    body: JSON.stringify({
-      connection_id: connectionId,
-      question_id: questionId,
-      answer: answer,
-    }),
+    body: JSON.stringify(payload),
   });
 }
 

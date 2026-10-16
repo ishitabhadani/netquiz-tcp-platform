@@ -14,7 +14,7 @@ const OPTION_LABELS = ["A", "B", "C", "D"];
  * The correct answer is NEVER sent in the question payload — only evaluated after
  * the student submits, demonstrating server-side truth enforcement.
  */
-export function Quiz({ session, onQuizComplete }) {
+export function Quiz({ session, onQuizComplete, onBackToHome }) {
   const { connectionId, studentName, totalQuestions } = session;
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -25,6 +25,7 @@ export function Quiz({ session, onQuizComplete }) {
   const [currentScore, setCurrentScore] = useState(0);
   const [questionNumber, setQuestionNumber] = useState(1);
   const [error, setError] = useState(null);
+  const [submitError, setSubmitError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Timer
@@ -37,6 +38,7 @@ export function Quiz({ session, onQuizComplete }) {
     setSelectedOption(null);
     setAnswerResult(null);
     setError(null);
+    setSubmitError(null);
     setTimeLeft(30);
 
     const res = await fetchCurrentQuestion(connectionId);
@@ -79,8 +81,9 @@ export function Quiz({ session, onQuizComplete }) {
     if (!question || submitting) return;
     clearInterval(timerRef.current);
     setSubmitting(true);
+    setSubmitError(null);
     // Submit a time-expired placeholder — server will mark incorrect
-    const res = await submitAnswer(connectionId, question.question_id, "A");
+    const res = await submitAnswer(connectionId, question.question_id, "A", studentName);
     setSubmitting(false);
     if (res.ok) {
       setAnswerResult({ ...res.data, timedOut: true });
@@ -89,24 +92,28 @@ export function Quiz({ session, onQuizComplete }) {
       if (res.data.quiz_completed) {
         setTimeout(() => handleQuizDone(), 2000);
       }
+    } else {
+      setSubmitError(res.error || "Unable to submit your answer. Please try again.");
     }
-  }, [question, connectionId, submitting]);
+  }, [question, connectionId, submitting, studentName]);
 
   // ── Submit answer ──────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!selectedOption || submitting || phase !== "question") return;
     clearInterval(timerRef.current);
     setSubmitting(true);
+    setSubmitError(null);
 
     const res = await submitAnswer(
       connectionId,
       question.question_id,
-      selectedOption
+      selectedOption,
+      studentName
     );
     setSubmitting(false);
 
     if (!res.ok) {
-      setError(res.error || "Failed to submit answer.");
+      setSubmitError(res.error || "Unable to submit your answer. Please try again.");
       return;
     }
 
@@ -166,14 +173,31 @@ export function Quiz({ session, onQuizComplete }) {
 
   // ── Render: Error ──────────────────────────────────────────────────────────
   if (phase === "error") {
+    const isSessionExpired =
+      error?.toLowerCase().includes("not found") ||
+      error?.toLowerCase().includes("session") ||
+      error?.toLowerCase().includes("expired") ||
+      error?.toLowerCase().includes("invalid");
+
     return (
       <div className="quiz-error-screen">
         <span className="quiz-error-icon">⚠️</span>
-        <h3>Network Error</h3>
-        <p>{error}</p>
-        <button className="btn-primary-join" onClick={loadQuestion}>
-          Retry
-        </button>
+        <h3>{isSessionExpired ? "Quiz Session Expired" : "Connection Issue"}</h3>
+        <p className="quiz-error-msg">
+          {isSessionExpired
+            ? "Your quiz session is no longer active. Please join again."
+            : error || "Unable to connect to NetQuiz server."}
+        </p>
+        <div className="quiz-error-btn-group">
+          {!isSessionExpired && (
+            <button className="btn-primary-join" onClick={loadQuestion}>
+              Retry Connection
+            </button>
+          )}
+          <button className="btn-secondary-home" onClick={onBackToHome} id="error-back-home-btn">
+            Return to Home
+          </button>
+        </div>
       </div>
     );
   }
@@ -186,7 +210,7 @@ export function Quiz({ session, onQuizComplete }) {
         <div className="quiz-header-info">
           <span className="quiz-student-chip">👤 {studentName}</span>
           <span className="quiz-conn-chip">
-            🔗 {connectionId.slice(0, 16)}…
+            <span className="tcp-live-dot" /> TCP :5000 &bull; {connectionId.slice(0, 16)}…
           </span>
         </div>
         <div className="quiz-score-chip">
@@ -244,7 +268,10 @@ export function Quiz({ session, onQuizComplete }) {
                 <button
                   key={label}
                   className={`quiz-option-btn ${isSelected ? "option-selected" : ""}`}
-                  onClick={() => setSelectedOption(label)}
+                  onClick={() => {
+                    setSelectedOption(label);
+                    if (submitError) setSubmitError(null);
+                  }}
                   disabled={submitting}
                   id={`option-${label}`}
                 >
@@ -254,6 +281,14 @@ export function Quiz({ session, onQuizComplete }) {
               );
             })}
           </div>
+
+          {/* Submission Error Banner if any */}
+          {submitError && (
+            <div className="quiz-inline-error">
+              <span className="error-icon">⚠️</span>
+              <span className="error-text">{submitError}</span>
+            </div>
+          )}
 
           {/* Submit */}
           <button

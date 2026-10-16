@@ -1909,3 +1909,116 @@
   background: var(--primary-light);
 }
 
+/* ==========================================================================
+   STAGE 7 RECOVERY & HARDENING STYLES
+   ========================================================================== */
+
+/* Session Lost Banner */
+.session-lost-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 0.75rem 1.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.session-lost-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #d97706;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.btn-banner-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #d97706;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.btn-banner-dismiss:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+/* Inline Quiz Submission Error */
+.quiz-inline-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  margin-top: 1rem;
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 600;
+  animation: fadeIn 0.25s ease;
+}
+
+/* Live TCP Pulsing Dot in Quiz Header */
+.tcp-live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* Leaderboard Highlight for Current Student */
+.lb-row-current {
+  background: rgba(99, 102, 241, 0.1) !important;
+  border-left: 3px solid var(--primary) !important;
+}
+
+.lb-you-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  border-radius: 4px;
+  background: var(--primary);
+  color: #ffffff;
+  letter-spacing: 0.05em;
+}
+
+/* Quiz Error Buttons Group */
+.quiz-error-btn-group {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
+.btn-secondary-home {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary-home:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+

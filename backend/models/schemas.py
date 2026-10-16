@@ -102,6 +102,7 @@ class SubmitAnswerRequest(BaseModel):
     connection_id: str = Field(..., description="Session ID returned by join endpoint")
     question_id: int
     answer: str = Field(..., pattern="^[A-Da-d]$", example="A")
+    student_name: Optional[str] = Field(None, description="Optional student name for session ownership validation")
 
 
 class AnswerResultResponse(BaseModel):

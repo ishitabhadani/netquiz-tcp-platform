@@ -9,7 +9,7 @@ const MEDAL = ["🥇", "🥈", "🥉"];
  * Academic note: Rankings are computed server-side by the QuizManager
  * using the completed_history list, not by client-side calculation.
  */
-export function Leaderboard({ onBack }) {
+export function Leaderboard({ onBack, currentStudentName }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -101,22 +101,38 @@ export function Leaderboard({ onBack }) {
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry, idx) => (
-                  <tr
-                    key={`${entry.student_name}-${entry.rank}`}
-                    className={`lb-row ${idx === 0 ? "lb-row-gold" : idx === 1 ? "lb-row-silver" : idx === 2 ? "lb-row-bronze" : ""}`}
-                  >
-                    <td className="lb-rank-cell">
-                      {idx < 3 ? (
-                        <span className="lb-medal">{MEDAL[idx]}</span>
-                      ) : (
-                        <span className="lb-rank-num">#{entry.rank}</span>
-                      )}
-                    </td>
-                    <td className="lb-name-cell">{entry.student_name}</td>
-                    <td className="lb-score-cell">
-                      {entry.score} / {entry.total_questions}
-                    </td>
+                {entries.map((entry, idx) => {
+                  const isCurrent =
+                    currentStudentName &&
+                    entry.student_name.trim().toLowerCase() ===
+                      currentStudentName.trim().toLowerCase();
+                  return (
+                    <tr
+                      key={`${entry.student_name}-${entry.rank}`}
+                      className={`lb-row ${
+                        idx === 0
+                          ? "lb-row-gold"
+                          : idx === 1
+                          ? "lb-row-silver"
+                          : idx === 2
+                          ? "lb-row-bronze"
+                          : ""
+                      } ${isCurrent ? "lb-row-current" : ""}`}
+                    >
+                      <td className="lb-rank-cell">
+                        {idx < 3 ? (
+                          <span className="lb-medal">{MEDAL[idx]}</span>
+                        ) : (
+                          <span className="lb-rank-num">#{entry.rank}</span>
+                        )}
+                      </td>
+                      <td className="lb-name-cell">
+                        <span className="lb-student-name">{entry.student_name}</span>
+                        {isCurrent && <span className="lb-you-badge">YOU</span>}
+                      </td>
+                      <td className="lb-score-cell">
+                        {entry.score} / {entry.total_questions}
+                      </td>
                     <td>
                       <div className="lb-pct-bar-wrap">
                         <div className="lb-pct-bar-track">
@@ -142,7 +158,8 @@ export function Leaderboard({ onBack }) {
                       {entry.completion_time || "—"}
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>

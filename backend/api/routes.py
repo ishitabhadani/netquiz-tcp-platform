@@ -196,6 +196,8 @@ def join_quiz(body: JoinQuizRequest) -> JoinQuizResponse:
             )
         # Track this as a web client in TCP server metrics
         tcp_server_instance.increment_metric("total_connections")
+        tcp_server_instance.increment_metric("messages_received")
+        tcp_server_instance.increment_metric("messages_sent")
         return JoinQuizResponse(
             success=True,
             connection_id=connection_id,
@@ -230,8 +232,10 @@ def get_current_question(connection_id: str) -> QuestionResponse:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No active question found. Session may not exist, quiz may be complete, or connection_id is invalid."
             )
-        # Track questions sent metric
+        # Track questions sent & message metrics
         tcp_server_instance.increment_metric("questions_sent")
+        tcp_server_instance.increment_metric("messages_received")
+        tcp_server_instance.increment_metric("messages_sent")
         return QuestionResponse(
             question_number=question["question_number"],
             total_questions=question["total_questions"],
@@ -263,15 +267,18 @@ def submit_answer(body: SubmitAnswerRequest) -> AnswerResultResponse:
         success, result = quiz_manager_instance.submit_answer(
             connection_id=body.connection_id,
             question_id=body.question_id,
-            answer=body.answer.upper()
+            answer=body.answer.upper(),
+            student_name=body.student_name
         )
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=result.get("message", "Failed to submit answer.")
             )
-        # Track answers received metric
+        # Track answers received & message metrics
         tcp_server_instance.increment_metric("answers_received")
+        tcp_server_instance.increment_metric("messages_received")
+        tcp_server_instance.increment_metric("messages_sent")
         if result.get("quiz_completed"):
             tcp_server_instance.increment_metric("completed_quizzes")
         return AnswerResultResponse(
@@ -307,6 +314,8 @@ def get_quiz_summary(connection_id: str) -> QuizSummaryResponse:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Quiz summary not available. Session not found or quiz not yet completed."
             )
+        tcp_server_instance.increment_metric("messages_received")
+        tcp_server_instance.increment_metric("messages_sent")
         return QuizSummaryResponse(
             student_name=summary["student_name"],
             score=summary["score"],

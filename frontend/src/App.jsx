@@ -66,9 +66,21 @@ function App() {
   }, [fetchPlatformData]);
 
   // ── Navigation handlers ────────────────────────────────────────────────────
+  const [sessionLostNotice, setSessionLostNotice] = useState(false);
+
+  useEffect(() => {
+    // Check if an active quiz session was interrupted by a browser refresh
+    const wasActive = sessionStorage.getItem("netquiz_active_session");
+    if (wasActive) {
+      sessionStorage.removeItem("netquiz_active_session");
+      setSessionLostNotice(true);
+    }
+  }, []);
 
   /** Called by Home when the student successfully joins the quiz */
   const handleJoinSuccess = (newSession) => {
+    sessionStorage.setItem("netquiz_active_session", "true");
+    setSessionLostNotice(false);
     setSession(newSession);
     setView("quiz");
     window.scrollTo(0, 0);
@@ -76,6 +88,7 @@ function App() {
 
   /** Called by Quiz when the student completes all questions */
   const handleQuizComplete = (quizSummary) => {
+    sessionStorage.removeItem("netquiz_active_session");
     setSummary(quizSummary);
     setView("results");
     window.scrollTo(0, 0);
@@ -91,6 +104,7 @@ function App() {
 
   /** Reset to home for retry */
   const handleRetry = () => {
+    sessionStorage.removeItem("netquiz_active_session");
     setSession(null);
     setSummary(null);
     setView("home");
@@ -100,6 +114,8 @@ function App() {
 
   /** Navigate back to home from any sub-page */
   const handleBackToHome = () => {
+    sessionStorage.removeItem("netquiz_active_session");
+    setSession(null);
     setView("home");
     window.scrollTo(0, 0);
     fetchPlatformData();
@@ -116,6 +132,23 @@ function App() {
         onNavHome={handleBackToHome}
         onNavLeaderboard={handleViewLeaderboard}
       />
+
+      {/* Session Expired / Interrupted Notice Banner */}
+      {sessionLostNotice && view === "home" && (
+        <div className="session-lost-banner">
+          <div className="session-lost-content">
+            <span className="banner-icon">ℹ️</span>
+            <span>Your quiz session is no longer active. Please join again.</span>
+            <button
+              className="btn-banner-dismiss"
+              onClick={() => setSessionLostNotice(false)}
+              aria-label="Dismiss notice"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Offline banner — shown only on home page if server is unreachable */}
       {!isOnline && !isLoading && view === "home" && (
@@ -150,6 +183,7 @@ function App() {
           <Quiz
             session={session}
             onQuizComplete={handleQuizComplete}
+            onBackToHome={handleBackToHome}
           />
         )}
 
@@ -162,7 +196,10 @@ function App() {
         )}
 
         {view === "leaderboard" && (
-          <Leaderboard onBack={handleBackToHome} />
+          <Leaderboard
+            onBack={handleBackToHome}
+            currentStudentName={session?.studentName || summary?.student_name}
+          />
         )}
       </main>
 

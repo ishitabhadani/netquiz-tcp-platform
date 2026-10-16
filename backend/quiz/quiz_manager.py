@@ -202,7 +202,8 @@ class QuizManager:
         self,
         connection_id: str,
         question_id: int,
-        answer: str
+        answer: str,
+        student_name: Optional[str] = None
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         Validates and evaluates an answer submitted by a client.
@@ -212,6 +213,12 @@ class QuizManager:
             state = self.sessions.get(connection_id)
             if not state:
                 return False, {"type": "error", "message": "No active quiz session found. Please join and start quiz."}
+
+            if student_name and state.student_name and student_name.strip().lower() != state.student_name.strip().lower():
+                return False, {
+                    "type": "error",
+                    "message": f"Session mismatch: Session {connection_id} belongs to '{state.student_name}', not '{student_name}'."
+                }
 
             if not state.quiz_started:
                 return False, {"type": "error", "message": "Quiz has not been started yet."}
@@ -325,18 +332,25 @@ class QuizManager:
 
     def get_leaderboard(self) -> List[Dict[str, Any]]:
         """
-        Generates leaderboard sorted by highest score, then by completion time.
+        Generates leaderboard sorted by highest score (descending), then by percentage (descending).
+        Deduplicates entries by connection_id to guarantee each completed session appears exactly once.
         """
         with self.lock:
-            all_records = list(self.completed_history)
+            # Deduplicate by connection_id to ensure no session appears twice
+            unique_records: Dict[str, Dict[str, Any]] = {}
+            for r in self.completed_history:
+                unique_records[r["connection_id"]] = r
+
             # Add currently active sessions that are completed but not yet in history
             for s in self.sessions.values():
-                if s.quiz_completed and not any(r["connection_id"] == s.connection_id for r in all_records):
-                    all_records.append(s.to_dict())
+                if s.quiz_completed and s.connection_id not in unique_records:
+                    unique_records[s.connection_id] = s.to_dict()
+
+            all_records = list(unique_records.values())
 
             sorted_leaderboard = sorted(
                 all_records,
-                key=lambda x: (x["score"], -x.get("percentage", 0)),
+                key=lambda x: (x["score"], x.get("percentage", 0.0)),
                 reverse=True
             )
             
