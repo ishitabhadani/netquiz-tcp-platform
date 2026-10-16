@@ -20,8 +20,9 @@ export function TeacherLogin() {
     const res = await teacherLogin(email.trim(), password.trim());
     setLoading(false);
 
-    if (res.ok && res.data?.access_token) {
-      setTeacherToken(res.data.access_token);
+    const token = res.data?.token || res.data?.access_token;
+    if (res.ok && token) {
+      setTeacherToken(token);
       navigateTo("/teacher");
     } else {
       setError(res.error || "Invalid credentials. Please verify your email and password.");

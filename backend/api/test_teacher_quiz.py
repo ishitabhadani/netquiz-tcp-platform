@@ -58,6 +58,7 @@ class TestTeacherQuizSystem(unittest.TestCase):
         data = res.json()
         self.assertTrue(data["success"])
         self.assertTrue(data["token"].startswith("tkn_"))
+        self.assertEqual(data["token"], data["access_token"])
         token = data["token"]
 
         # Verify session

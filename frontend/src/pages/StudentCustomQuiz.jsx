@@ -459,36 +459,41 @@ export function StudentCustomQuiz({ quizId }) {
 
               {/* Options */}
               <div className="options-container">
-                {question.options.map((opt, idx) => {
-                  const letter = OPTION_LABELS[idx];
-                  const isSelected = selectedOption === letter;
+                {(() => {
+                  const optionsList = Array.isArray(question.options)
+                    ? question.options.map((opt, idx) => ({ letter: OPTION_LABELS[idx], text: opt }))
+                    : Object.entries(question.options || {}).map(([key, val]) => ({ letter: key, text: val }));
 
-                  let optClass = "option-btn";
-                  if (phase === "question") {
-                    if (isSelected) optClass += " option-selected";
-                  } else if (phase === "feedback" && answerResult) {
-                    if (letter === answerResult.correct_answer) {
-                      optClass += " option-correct";
-                    } else if (isSelected && !answerResult.correct) {
-                      optClass += " option-wrong";
+                  return optionsList.map(({ letter, text }) => {
+                    const isSelected = selectedOption === letter;
+
+                    let optClass = "option-btn";
+                    if (phase === "question") {
+                      if (isSelected) optClass += " option-selected";
+                    } else if (phase === "feedback" && answerResult) {
+                      if (letter === answerResult.correct_answer) {
+                        optClass += " option-correct";
+                      } else if (isSelected && !answerResult.correct) {
+                        optClass += " option-wrong";
+                      }
                     }
-                  }
 
-                  return (
-                    <button
-                      key={letter}
-                      className={optClass}
-                      onClick={() => phase === "question" && setSelectedOption(letter)}
-                      disabled={phase !== "question" || submitting}
-                    >
-                      <span className="opt-letter">{letter}</span>
-                      <span className="opt-text">{opt}</span>
-                      {phase === "feedback" && letter === answerResult?.correct_answer && (
-                        <span className="opt-status-badge">✓ Correct</span>
-                      )}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={letter}
+                        className={optClass}
+                        onClick={() => phase === "question" && setSelectedOption(letter)}
+                        disabled={phase !== "question" || submitting}
+                      >
+                        <span className="opt-letter">{letter}</span>
+                        <span className="opt-text">{text}</span>
+                        {phase === "feedback" && letter === answerResult?.correct_answer && (
+                          <span className="opt-status-badge">✓ Correct</span>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
 
               {/* Submit / Next Action */}

@@ -382,11 +382,19 @@ class CustomQuizManager:
 
             for idx, raw_q in enumerate(raw_questions, start=1):
                 qid = raw_q.get("id") or f"q_{idx:03d}"
+                raw_opts = raw_q.get("options", {})
+                if isinstance(raw_opts, list):
+                    normalized_opts = {chr(65 + i): str(v) for i, v in enumerate(raw_opts)}
+                elif isinstance(raw_opts, dict):
+                    normalized_opts = {str(k).upper(): str(v) for k, v in raw_opts.items()}
+                else:
+                    normalized_opts = {}
+
                 cleaned_questions.append({
                     "id": qid,
                     "question": raw_q.get("question", "").strip(),
                     "type": raw_q.get("type", "mcq"),
-                    "options": raw_q.get("options", {}),
+                    "options": normalized_opts,
                     "correct_answer": str(raw_q.get("correct_answer", "A")).strip().upper(),
                     "explanation": raw_q.get("explanation", "").strip(),
                     "points": int(raw_q.get("points", 1)),
@@ -439,11 +447,19 @@ class CustomQuizManager:
                 cleaned_questions = []
                 for idx, raw_q in enumerate(updates["questions"], start=1):
                     qid = raw_q.get("id") or f"q_{idx:03d}"
+                    raw_opts = raw_q.get("options", {})
+                    if isinstance(raw_opts, list):
+                        normalized_opts = {chr(65 + i): str(v) for i, v in enumerate(raw_opts)}
+                    elif isinstance(raw_opts, dict):
+                        normalized_opts = {str(k).upper(): str(v) for k, v in raw_opts.items()}
+                    else:
+                        normalized_opts = {}
+
                     cleaned_questions.append({
                         "id": qid,
                         "question": raw_q.get("question", "").strip(),
                         "type": raw_q.get("type", "mcq"),
-                        "options": raw_q.get("options", {}),
+                        "options": normalized_opts,
                         "correct_answer": str(raw_q.get("correct_answer", "A")).strip().upper(),
                         "explanation": raw_q.get("explanation", "").strip(),
                         "points": int(raw_q.get("points", 1)),

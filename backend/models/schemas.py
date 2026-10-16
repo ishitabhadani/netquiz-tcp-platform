@@ -3,7 +3,7 @@ Pydantic Schemas for NetQuiz FastAPI Bridge Layer.
 Provides typed, validated response models for OpenAPI documentation and client responses.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 
 
@@ -138,6 +138,7 @@ class TeacherLoginRequest(BaseModel):
 class TeacherLoginResponse(BaseModel):
     success: bool
     token: str
+    access_token: Optional[str] = None
     teacher: Dict[str, Any]
     message: str
 
@@ -153,7 +154,7 @@ class QuestionItem(BaseModel):
     id: str = Field(..., example="q_001")
     question: str = Field(..., min_length=1)
     type: str = Field(default="mcq", example="mcq")  # mcq or true_false
-    options: Dict[str, str] = Field(default_factory=dict)
+    options: Union[Dict[str, str], List[str]] = Field(default_factory=dict)
     correct_answer: str = Field(..., example="C")
     explanation: Optional[str] = ""
     points: int = Field(default=1, ge=1)
@@ -165,7 +166,7 @@ class QuestionItemStudent(BaseModel):
     id: str
     question: str
     type: str
-    options: Dict[str, str]
+    options: Union[Dict[str, str], List[str]]
     points: int
     time_limit: int
     question_number: int

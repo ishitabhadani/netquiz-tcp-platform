@@ -55,6 +55,7 @@ def teacher_login(body: TeacherLoginRequest) -> TeacherLoginResponse:
     return TeacherLoginResponse(
         success=True,
         token=auth_result["token"],
+        access_token=auth_result["token"],
         teacher=auth_result["teacher"],
         message="Teacher authenticated successfully."
     )

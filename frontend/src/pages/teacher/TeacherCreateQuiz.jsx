@@ -78,7 +78,19 @@ export function TeacherCreateQuiz({ quizId = null }) {
           setQuizType(q.type || "Unit Test");
           setOverallTimeLimit(q.time_limit || 0);
           if (q.questions && q.questions.length > 0) {
-            setQuestions(q.questions);
+            setQuestions(
+              q.questions.map((item) => ({
+                ...item,
+                options: Array.isArray(item.options)
+                  ? item.options
+                  : [
+                      item.options?.A || "",
+                      item.options?.B || "",
+                      item.options?.C || "",
+                      item.options?.D || "",
+                    ].filter((x, idx) => item.type === "true_false" ? idx < 2 : true),
+              }))
+            );
           }
         } else {
           setError(res.error || "Failed to load quiz details.");
@@ -261,7 +273,12 @@ export function TeacherCreateQuiz({ quizId = null }) {
         id: q.id || `q_${String(idx + 1).padStart(3, "0")}`,
         question: q.question.trim(),
         type: q.type || "mcq",
-        options: q.options.map((opt) => opt.trim()),
+        options: Array.isArray(q.options)
+          ? q.options.reduce((acc, opt, oIdx) => {
+              acc[String.fromCharCode(65 + oIdx)] = opt.trim();
+              return acc;
+            }, {})
+          : q.options,
         correct_answer: q.correct_answer,
         points: Number(q.points) || 1,
         time_limit: Number(q.time_limit) || 30,
@@ -302,7 +319,12 @@ export function TeacherCreateQuiz({ quizId = null }) {
         id: q.id || `q_${String(idx + 1).padStart(3, "0")}`,
         question: q.question.trim(),
         type: q.type || "mcq",
-        options: q.options.map((opt) => opt.trim()),
+        options: Array.isArray(q.options)
+          ? q.options.reduce((acc, opt, oIdx) => {
+              acc[String.fromCharCode(65 + oIdx)] = opt.trim();
+              return acc;
+            }, {})
+          : q.options,
         correct_answer: q.correct_answer,
         points: Number(q.points) || 1,
         time_limit: Number(q.time_limit) || 30,
