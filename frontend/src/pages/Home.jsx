@@ -1,32 +1,53 @@
 import React, { useState } from "react";
 import { NetworkStatCards } from "../components/NetworkStatCards";
 import { NetworkArchitecture } from "../components/NetworkArchitecture";
+import { joinQuiz } from "../services/api";
 
-export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh }) {
+/**
+ * Home Page — Landing screen with join form, network stats, and architecture diagram.
+ *
+ * On successful join: calls onJoinSuccess(session) to navigate to the Quiz page.
+ * Session contains: { connectionId, studentName, totalQuestions }
+ */
+export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh, onJoinSuccess }) {
   const [studentName, setStudentName] = useState("");
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [joinMessage, setJoinMessage] = useState(null);
 
-  const handleJoinClick = (e) => {
+  const handleJoinClick = async (e) => {
     e.preventDefault();
     const trimmed = studentName.trim();
+
     if (!trimmed) {
-      setJoinMessage({ type: "error", text: "Please enter your name to connect to the quiz." });
+      setJoinMessage({ type: "error", text: "Please enter your name to join the quiz." });
       return;
     }
-
     if (!isOnline) {
       setJoinMessage({
         type: "error",
-        text: "Cannot join: Python TCP Server is currently offline. Please start the backend service."
+        text: "Cannot join: The Python TCP Server is offline. Please start the backend.",
       });
       return;
     }
 
-    setHasSubmitted(true);
-    setJoinMessage({
-      type: "success",
-      text: `Welcome, ${trimmed}! Name verified. Ready to initiate TCP session on Port 5000 in Stage 6.`
+    setJoining(true);
+    setJoinMessage(null);
+
+    // POST /api/quiz/join → FastAPI → QuizManager.start_quiz()
+    const res = await joinQuiz(trimmed);
+    setJoining(false);
+
+    if (!res.ok) {
+      setJoinMessage({ type: "error", text: res.error || "Failed to join quiz. Try again." });
+      return;
+    }
+
+    const { connection_id, total_questions } = res.data;
+    // Navigate to the quiz page
+    onJoinSuccess({
+      connectionId: connection_id,
+      studentName: trimmed,
+      totalQuestions: total_questions,
     });
   };
 
@@ -44,8 +65,9 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh })
         </h1>
         <p className="hero-subtitle">Multi-User TCP Quiz Platform</p>
         <p className="hero-description">
-          Test your Computer Networks knowledge over a genuine TCP client-server architecture. 
-          Multiple students connect concurrently over IPv4, exchanging framed JSON byte streams evaluated strictly server-side.
+          Test your Computer Networks knowledge over a genuine TCP client-server
+          architecture. Multiple students connect concurrently over IPv4,
+          exchanging framed JSON byte streams evaluated strictly server-side.
         </p>
 
         {/* Primary Student Join Card */}
@@ -55,8 +77,12 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh })
               <span className="join-icon">🚀</span>
               <span className="join-card-title">Join Live Quiz Session</span>
             </div>
-            <div className={`server-status-pill ${isOnline ? "pill-online" : "pill-offline"}`}>
-              <span className="status-dot"></span>
+            <div
+              className={`server-status-pill ${
+                isOnline ? "pill-online" : "pill-offline"
+              }`}
+            >
+              <span className="status-dot" />
               <span>{isOnline ? "TCP SERVER ONLINE" : "TCP SERVER OFFLINE"}</span>
             </div>
           </div>
@@ -78,7 +104,8 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh })
                     setStudentName(e.target.value);
                     if (joinMessage) setJoinMessage(null);
                   }}
-                  disabled={isLoading}
+                  disabled={isLoading || joining}
+                  maxLength={50}
                 />
               </div>
             </div>
@@ -86,19 +113,43 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh })
             <button
               type="submit"
               className="btn-primary-join"
-              disabled={isLoading || !isOnline}
+              disabled={isLoading || !isOnline || joining}
+              id="join-quiz-btn"
             >
-              <span>CONNECT & JOIN QUIZ</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
+              {joining ? (
+                <>
+                  <span className="btn-spinner" /> Connecting to server…
+                </>
+              ) : (
+                <>
+                  <span>CONNECT &amp; JOIN QUIZ</span>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </>
+              )}
             </button>
           </form>
 
           {joinMessage && (
-            <div className={`join-alert ${joinMessage.type === "success" ? "alert-success" : "alert-error"}`}>
-              <span className="alert-icon">{joinMessage.type === "success" ? "✅" : "⚠️"}</span>
+            <div
+              className={`join-alert ${
+                joinMessage.type === "success" ? "alert-success" : "alert-error"
+              }`}
+            >
+              <span className="alert-icon">
+                {joinMessage.type === "success" ? "✅" : "⚠️"}
+              </span>
               <span className="alert-text">{joinMessage.text}</span>
             </div>
           )}
@@ -123,7 +174,7 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh })
       {/* Network Stat Cards Grid */}
       <section className="section-block">
         <div className="section-header-compact">
-          <h3 className="section-sub-title">Live Networking & Quiz Parameters</h3>
+          <h3 className="section-sub-title">Live Networking &amp; Quiz Parameters</h3>
           <span className="section-tag">Queried from FastAPI Port 8000</span>
         </div>
         <NetworkStatCards serverStatus={serverStatus} quizInfo={quizInfo} />
@@ -137,11 +188,13 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh })
         <div className="terminal-card">
           <div className="terminal-header">
             <div className="terminal-dots">
-              <span className="t-dot dot-red"></span>
-              <span className="t-dot dot-yellow"></span>
-              <span className="t-dot dot-green"></span>
+              <span className="t-dot dot-red" />
+              <span className="t-dot dot-yellow" />
+              <span className="t-dot dot-green" />
             </div>
-            <span className="terminal-title">TCP SOCKET SERVER RUNTIME &bull; 127.0.0.1:5000</span>
+            <span className="terminal-title">
+              TCP SOCKET SERVER RUNTIME &bull; 127.0.0.1:5000
+            </span>
             <span className="terminal-badge">LIVE METRICS</span>
           </div>
           <div className="terminal-body">
@@ -159,7 +212,9 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh })
             </div>
             <div className="terminal-row">
               <span className="t-key">ACTIVE_CLIENT_SOCKETS</span>
-              <span className="t-val t-highlight">{serverStatus?.active_clients ?? 0} Concurrent Clients</span>
+              <span className="t-val t-highlight">
+                {serverStatus?.active_clients ?? 0} Concurrent Clients
+              </span>
             </div>
             <div className="terminal-row">
               <span className="t-key">TOTAL_CONNECTIONS_ACCEPTED</span>

@@ -182,6 +182,28 @@ class TCPServer:
         with self.lock:
             self.completed_quizzes += 1
 
+    def increment_metric(self, metric_name: str) -> None:
+        """
+        Generic thread-safe metric counter increment.
+        Used by the FastAPI bridge to update server-side metrics when
+        browser (web) quiz sessions participate through the HTTP API.
+        Supported metrics: 'total_connections', 'questions_sent',
+                           'answers_received', 'completed_quizzes'
+        """
+        with self.lock:
+            if metric_name == "total_connections":
+                self.total_connections += 1
+            elif metric_name == "questions_sent":
+                self.questions_sent += 1
+            elif metric_name == "answers_received":
+                self.answers_received += 1
+            elif metric_name == "completed_quizzes":
+                self.completed_quizzes += 1
+            elif metric_name == "messages_sent":
+                self.messages_sent += 1
+            elif metric_name == "messages_received":
+                self.messages_received += 1
+
     def get_status(self) -> Dict[str, Any]:
         """
         Returns thread-safe snapshot of TCP server status and active clients.

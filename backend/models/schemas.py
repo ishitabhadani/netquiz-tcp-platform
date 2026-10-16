@@ -65,3 +65,61 @@ class QuizInfoResponse(BaseModel):
     questions_per_quiz: int = Field(..., example=10)
     topic: str = Field(..., example="Computer Networks")
     question_type: str = Field(..., example="Multiple Choice")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Quiz Participation Schemas (Stage 6)
+# ────────────────────────────────────────────────────────────────────────────
+
+class JoinQuizRequest(BaseModel):
+    student_name: str = Field(..., min_length=1, max_length=50, example="Ishita")
+
+
+class JoinQuizResponse(BaseModel):
+    success: bool
+    connection_id: str = Field(..., description="Unique session ID for this quiz attempt")
+    student_name: str
+    total_questions: int
+    message: str
+
+
+class QuestionOptions(BaseModel):
+    A: str
+    B: str
+    C: str
+    D: str
+
+
+class QuestionResponse(BaseModel):
+    question_number: int
+    total_questions: int
+    question_id: int
+    question: str
+    options: QuestionOptions
+
+
+class SubmitAnswerRequest(BaseModel):
+    connection_id: str = Field(..., description="Session ID returned by join endpoint")
+    question_id: int
+    answer: str = Field(..., pattern="^[A-Da-d]$", example="A")
+
+
+class AnswerResultResponse(BaseModel):
+    correct: bool
+    submitted_answer: str
+    correct_answer: str
+    explanation: str
+    current_score: int
+    question_number: int
+    total_questions: int
+    quiz_completed: bool
+
+
+class QuizSummaryResponse(BaseModel):
+    student_name: str
+    score: int
+    total_questions: int
+    correct_answers: int
+    incorrect_answers: int
+    percentage: float
+    completion_time: Optional[str] = None

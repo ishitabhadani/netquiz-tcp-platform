@@ -11,14 +11,21 @@ It queries and exposes:
 4. Real-Time Leaderboard evaluated strictly server-side
 """
 
+import uuid
 from fastapi import APIRouter, HTTPException, status
 from backend.models.schemas import (
+    AnswerResultResponse,
     ConnectedClientItem,
     ConnectedClientsResponse,
     HealthResponse,
+    JoinQuizRequest,
+    JoinQuizResponse,
     LeaderboardEntry,
     LeaderboardResponse,
     QuizInfoResponse,
+    QuestionResponse,
+    QuizSummaryResponse,
+    SubmitAnswerRequest,
     TCPServerStatusResponse,
 )
 from backend.networking.tcp_server import tcp_server_instance
@@ -155,4 +162,164 @@ def get_quiz_leaderboard() -> LeaderboardResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve leaderboard: {str(e)}"
+        )
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Stage 6: Quiz Participation Endpoints
+# These allow the React frontend to participate in the server-side quiz.
+# Architecture: React → FastAPI → QuizManager (in-memory, backed by TCP server state)
+# ────────────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/quiz/join",
+    response_model=JoinQuizResponse,
+    summary="Join Quiz Session",
+    description=(
+        "Creates an isolated server-side quiz session for the student. "
+        "Returns a unique connection_id that must be passed with all subsequent quiz API calls."
+    )
+)
+def join_quiz(body: JoinQuizRequest) -> JoinQuizResponse:
+    try:
+        # Generate a unique session identifier for this browser-side participant.
+        # (TCP clients get connection IDs from socket file descriptors; browser clients get UUIDs)
+        connection_id = f"web-{uuid.uuid4().hex[:12]}"
+        success, result = quiz_manager_instance.start_quiz(
+            connection_id=connection_id,
+            student_name=body.student_name.strip()
+        )
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.get("error", "Failed to start quiz session.")
+            )
+        # Track this as a web client in TCP server metrics
+        tcp_server_instance.increment_metric("total_connections")
+        return JoinQuizResponse(
+            success=True,
+            connection_id=connection_id,
+            student_name=body.student_name.strip(),
+            total_questions=result["total_questions"],
+            message=f"Quiz session started for {body.student_name.strip()}. Good luck!"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to join quiz: {str(e)}"
+        )
+
+
+@router.get(
+    "/quiz/question",
+    response_model=QuestionResponse,
+    summary="Get Current Quiz Question",
+    description=(
+        "Retrieves the current unanswered question for a quiz session. "
+        "The correct answer is NEVER included in the response (server-side secret). "
+        "Pass the connection_id returned by /quiz/join."
+    )
+)
+def get_current_question(connection_id: str) -> QuestionResponse:
+    try:
+        question = quiz_manager_instance.get_current_question(connection_id)
+        if question is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No active question found. Session may not exist, quiz may be complete, or connection_id is invalid."
+            )
+        # Track questions sent metric
+        tcp_server_instance.increment_metric("questions_sent")
+        return QuestionResponse(
+            question_number=question["question_number"],
+            total_questions=question["total_questions"],
+            question_id=question["question_id"],
+            question=question["question"],
+            options=question["options"]
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch question: {str(e)}"
+        )
+
+
+@router.post(
+    "/quiz/answer",
+    response_model=AnswerResultResponse,
+    summary="Submit Quiz Answer",
+    description=(
+        "Submits a candidate answer to the server for evaluation. "
+        "The server validates correctness, updates the student’s score, and returns the result. "
+        "This is the core server-side evaluation step."
+    )
+)
+def submit_answer(body: SubmitAnswerRequest) -> AnswerResultResponse:
+    try:
+        success, result = quiz_manager_instance.submit_answer(
+            connection_id=body.connection_id,
+            question_id=body.question_id,
+            answer=body.answer.upper()
+        )
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.get("message", "Failed to submit answer.")
+            )
+        # Track answers received metric
+        tcp_server_instance.increment_metric("answers_received")
+        if result.get("quiz_completed"):
+            tcp_server_instance.increment_metric("completed_quizzes")
+        return AnswerResultResponse(
+            correct=result["correct"],
+            submitted_answer=result["submitted_answer"],
+            correct_answer=result["correct_answer"],
+            explanation=result.get("explanation", ""),
+            current_score=result["current_score"],
+            question_number=result["question_number"],
+            total_questions=result["total_questions"],
+            quiz_completed=result["quiz_completed"]
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to submit answer: {str(e)}"
+        )
+
+
+@router.get(
+    "/quiz/summary",
+    response_model=QuizSummaryResponse,
+    summary="Get Quiz Final Summary",
+    description="Returns the final score summary for a completed quiz session."
+)
+def get_quiz_summary(connection_id: str) -> QuizSummaryResponse:
+    try:
+        summary = quiz_manager_instance.get_quiz_end_summary(connection_id)
+        if summary is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Quiz summary not available. Session not found or quiz not yet completed."
+            )
+        return QuizSummaryResponse(
+            student_name=summary["student_name"],
+            score=summary["score"],
+            total_questions=summary["total_questions"],
+            correct_answers=summary["correct_answers"],
+            incorrect_answers=summary["incorrect_answers"],
+            percentage=summary["percentage"],
+            completion_time=summary.get("completion_time")
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve quiz summary: {str(e)}"
         )

@@ -981,3 +981,931 @@
   font-size: 0.75rem;
   color: var(--text-sub);
 }
+
+/* ==========================================================================
+   NAVBAR NAV LINKS (Stage 6)
+   ========================================================================== */
+
+.navbar-nav {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.nav-link {
+  background: none;
+  border: 1px solid transparent;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+
+.nav-link:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary-border);
+}
+
+.nav-link-active {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary-border);
+}
+
+/* ==========================================================================
+   SPINNER (shared)
+   ========================================================================== */
+
+.quiz-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(99,102,241,0.18);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+}
+
+/* ==========================================================================
+   QUIZ PAGE
+   ========================================================================== */
+
+.quiz-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem 0;
+}
+
+.quiz-loading-screen,
+.quiz-error-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.quiz-loading-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.quiz-loading-sub {
+  font-size: 0.8125rem;
+  color: var(--text-sub);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.quiz-error-icon {
+  font-size: 2.5rem;
+}
+
+.quiz-error-screen h3 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.quiz-error-screen p {
+  color: var(--text-sub);
+  font-size: 0.9rem;
+}
+
+/* Header bar */
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.quiz-header-info {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.quiz-student-chip,
+.quiz-conn-chip {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--primary-border);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.quiz-conn-chip {
+  background: rgba(16,185,129,0.08);
+  color: #059669;
+  border-color: rgba(16,185,129,0.25);
+}
+
+.quiz-score-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Progress bar */
+.quiz-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.quiz-progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.quiz-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #818cf8);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.quiz-progress-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+/* Quiz question card */
+.quiz-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Timer */
+.quiz-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-page);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.quiz-timer-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+.quiz-timer-bar-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.quiz-timer-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 1s linear, background 0.3s ease;
+}
+
+.quiz-timer-count {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  font-family: "JetBrains Mono", monospace;
+  min-width: 28px;
+  text-align: right;
+  transition: color 0.3s;
+}
+
+/* Question */
+.quiz-question-number {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.quiz-question-text {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.55;
+  margin-bottom: 1.5rem;
+}
+
+/* Options */
+.quiz-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 520px) {
+  .quiz-options-grid { grid-template-columns: 1fr; }
+}
+
+.quiz-option-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--bg-page);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.18s ease;
+  line-height: 1.45;
+}
+
+.quiz-option-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.quiz-option-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.option-selected {
+  border-color: var(--primary) !important;
+  background: var(--primary-light) !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+
+.option-label-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  border-radius: 6px;
+  border: 1px solid var(--primary-border);
+}
+
+.option-selected .option-label-badge {
+  background: var(--primary);
+  color: white;
+}
+
+.option-text {
+  flex: 1;
+  line-height: 1.45;
+}
+
+/* Submit button */
+.btn-quiz-submit {
+  width: 100%;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, var(--primary), #818cf8);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.btn-quiz-submit:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99,102,241,0.35);
+}
+
+.btn-quiz-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Academic note */
+.quiz-academic-note {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  text-align: center;
+  font-family: "JetBrains Mono", monospace;
+  background: var(--bg-page);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+/* Feedback card */
+.quiz-feedback-card {
+  background: var(--bg-surface);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+  border: 2px solid;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+.feedback-correct {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4, var(--bg-surface));
+}
+
+.feedback-incorrect {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, #fff1f1, var(--bg-surface));
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.feedback-verdict-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.verdict-icon {
+  font-size: 2rem;
+}
+
+.verdict-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.feedback-detail-grid {
+  background: var(--bg-page);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.feedback-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fb-label {
+  font-size: 0.8125rem;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.fb-val {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.val-correct { color: #16a34a; }
+.val-wrong   { color: #dc2626; }
+
+.feedback-explanation {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  background: rgba(99,102,241,0.06);
+  border-radius: 8px;
+  border: 1px solid var(--primary-border);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.explanation-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+.feedback-complete-notice {
+  text-align: center;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 1rem;
+  font-size: 1rem;
+  animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+.btn-next-question {
+  width: 100%;
+  padding: 0.85rem;
+  background: linear-gradient(135deg, var(--primary), #818cf8);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.btn-next-question:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(99,102,241,0.3);
+}
+
+/* ==========================================================================
+   RESULTS PAGE
+   ========================================================================== */
+
+.results-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 1rem 0 3rem;
+}
+
+.results-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  animation: fadeSlideIn 0.4s ease;
+}
+
+.results-header {
+  margin-bottom: 1.5rem;
+}
+
+.results-grade-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.results-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.results-student {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Circular ring */
+.results-ring-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.ring-score-text {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 18px;
+  font-weight: 800;
+  fill: var(--text-primary);
+}
+
+.ring-pct-text {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--text-sub);
+}
+
+/* Grade badge */
+.results-grade-badge {
+  display: inline-block;
+  padding: 0.3rem 1.2rem;
+  border-radius: 999px;
+  border: 2px solid;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 1.5rem;
+}
+
+/* Stats */
+.results-stats-grid {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.results-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.875rem 0.5rem;
+}
+
+.rs-icon { font-size: 1.25rem; }
+
+.rs-value {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.rs-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Academic note */
+.results-academic-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba(99,102,241,0.06);
+  border: 1px solid var(--primary-border);
+  border-radius: 8px;
+  padding: 0.75rem 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-align: left;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.note-icon { flex-shrink: 0; font-size: 1rem; }
+
+.results-time {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  margin: 0 0 1.25rem;
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* Action buttons */
+.results-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-leaderboard {
+  flex: 1;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.btn-leaderboard:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(249,115,22,0.3);
+}
+
+.btn-retry {
+  flex: 1;
+  padding: 0.875rem;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.btn-retry:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* ==========================================================================
+   LEADERBOARD PAGE
+   ========================================================================== */
+
+.leaderboard-page {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0 3rem;
+}
+
+.leaderboard-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 860px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+  animation: fadeSlideIn 0.35s ease;
+}
+
+.lb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lb-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lb-icon { font-size: 2rem; }
+
+.lb-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 0.15rem;
+}
+
+.lb-subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-sub);
+  margin: 0;
+}
+
+.lb-refresh-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lb-refresh-time {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.btn-refresh-lb {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.btn-refresh-lb:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-refresh-lb:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Academic note */
+.lb-academic-note {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  background: rgba(99,102,241,0.05);
+  border: 1px solid var(--primary-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.875rem;
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  margin-bottom: 1.25rem;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.lb-academic-note code {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* Loading / error / empty */
+.lb-loading, .lb-error, .lb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  gap: 0.5rem;
+  color: var(--text-sub);
+  font-size: 0.9rem;
+}
+
+.lb-empty-icon { font-size: 2.5rem; }
+
+.lb-empty-sub {
+  font-size: 0.8125rem;
+  color: var(--text-sub);
+  margin: 0;
+}
+
+.lb-error { color: #dc2626; flex-direction: row; }
+
+/* Table */
+.lb-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+}
+
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.lb-table thead tr {
+  background: var(--bg-page);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.lb-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lb-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.15s;
+}
+
+.lb-row:last-child { border-bottom: none; }
+
+.lb-row:hover { background: var(--primary-light); }
+
+.lb-row-gold   { background: rgba(251,191,36,0.06); }
+.lb-row-silver { background: rgba(148,163,184,0.06); }
+.lb-row-bronze { background: rgba(180,83,9,0.06); }
+
+.lb-table td {
+  padding: 0.875rem 1rem;
+  color: var(--text-primary);
+}
+
+.lb-rank-cell { width: 60px; }
+
+.lb-medal { font-size: 1.5rem; }
+
+.lb-rank-num {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--text-sub);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.lb-name-cell { font-weight: 700; }
+
+.lb-score-cell {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+}
+
+.lb-pct-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lb-pct-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.lb-pct-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.lb-pct-val {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: "JetBrains Mono", monospace;
+  min-width: 42px;
+  color: var(--text-primary);
+}
+
+.lb-time-cell {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* Back button */
+.btn-back-home {
+  background: var(--bg-page);
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+  padding: 0.7rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s;
+}
+
+.btn-back-home:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
