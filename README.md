@@ -55,10 +55,19 @@ mini project/
 │   └── main.py          # FastAPI application entry point with Lifespan & CORS
 ├── frontend/
 │   ├── src/
-│   │   ├── services/    # api.js for calling backend endpoints
-│   │   ├── App.jsx      # Main view and health status card
-│   │   ├── App.css
-│   │   └── index.css    # Clean academic styling system
+│   │   ├── components/  # Reusable UI components
+│   │   │   ├── Navbar.jsx               # Brand header, IP:Port pill, and status badge
+│   │   │   ├── StatusBadge.jsx          # Live TCP ONLINE / OFFLINE indicator
+│   │   │   ├── NetworkStatCards.jsx     # Parameter cards (Transport, IPv4, Sockets)
+│   │   │   ├── NetworkArchitecture.jsx  # CSS client-server topology diagram
+│   │   │   └── Footer.jsx               # Technical footer with port mappings
+│   │   ├── pages/       # Application views
+│   │   │   └── Home.jsx                 # Landing page & student join card
+│   │   ├── services/    # Centralized API service layer
+│   │   │   └── api.js                   # getHealth, getServerStatus, getQuizInfo, etc.
+│   │   ├── App.jsx      # Top-level state coordinator
+│   │   ├── App.css      # Component and layout styling
+│   │   └── index.css    # Design tokens and theme variables
 │   ├── package.json
 │   └── vite.config.js
 ├── requirements.txt     # Python dependencies (fastapi, uvicorn, httpx)
@@ -177,17 +186,7 @@ Python TCP Socket Server [Port 5000]
 | **FastAPI Bridge** | `8000` | HTTP / REST | Exposes live TCP status, client registries, and leaderboard to web UI |
 | **Python TCP Server** | `5000` | TCP (`SOCK_STREAM`) | Genuine Computer Networks transport layer for quiz message exchange |
 
-### 5.2 Why FastAPI Exists & Viva Explanation
-- **Why can't React talk directly to port 5000?**  
-  Web browsers are constrained by security sandboxes and cannot open raw TCP sockets (`socket.socket(AF_INET, SOCK_STREAM)`). FastAPI bridges this gap by exposing HTTP REST endpoints that query the live TCP server and quiz engine.
-- **Does FastAPI replace TCP?**  
-  **No.** The actual Computer Networks quiz protocol (`join`, `start_quiz`, `question`, `answer`, `answer_result`, `quiz_end`) travels strictly over the Python TCP socket server on port `5000`.
-- **What is CORS?**  
-  Cross-Origin Resource Sharing. Because the frontend runs on origin `http://localhost:5173` and the backend runs on `http://127.0.0.1:8000`, the browser requires CORS headers (`Access-Control-Allow-Origin`) before allowing HTTP requests.
-- **FastAPI Lifespan Context Manager:**  
-  When FastAPI starts up, it automatically initializes the background TCP socket server on port `5000`. When FastAPI shuts down, it releases port `5000` cleanly, avoiding duplicate server processes.
-
-### 5.3 Exposed API Endpoints
+### 5.2 Exposed API Endpoints
 
 - `GET /api/health`: Health status of FastAPI bridge layer.
 - `GET /api/server/status`: Live TCP metrics (active clients, total connections, packets sent/received, questions sent, answers received, completed quizzes).
@@ -198,63 +197,73 @@ Python TCP Socket Server [Port 5000]
 
 ---
 
-## 6. How to Run and Test
+## 6. Stage 5: Polished React Frontend Foundation
 
-### 1. Run All Automated Test Suites
+Stage 5 creates the academic, modern web interface that connects directly to the FastAPI application bridge.
 
-```bash
-source venv/bin/activate
+### 6.1 Frontend Component Architecture
 
-# 1. Verify Stage 2 TCP Socket Networking (8 tests)
-python -m backend.networking.test_stage2
-
-# 2. Verify Stage 3 QuizManager Logic & Validations (12 tests)
-python -m backend.quiz.test_quiz_engine
-
-# 3. Verify Stage 3 Multi-User Concurrent TCP Quiz (3 concurrent students)
-python -m backend.quiz.test_stage3_tcp_quiz
-
-# 4. Verify Stage 4 FastAPI Endpoints, CORS & Lifespan (8 tests)
-python -m backend.api.test_api
 ```
+frontend/src/
+├── components/
+│   ├── Navbar.jsx               # Branded top nav with 127.0.0.1:5000 pill & TCP ● ONLINE status
+│   ├── StatusBadge.jsx          # Reusable pulsing online/offline badge
+│   ├── NetworkStatCards.jsx     # 6 parameter cards (TCP, IPv4, Sockets, Question Bank)
+│   ├── NetworkArchitecture.jsx  # CSS client-server topology diagram
+│   └── Footer.jsx               # Technical footer with port mappings
+├── pages/
+│   └── Home.jsx                 # Hero, student join form, parameter grid, and live terminal
+├── services/
+│   └── api.js                   # Centralized API service methods
+├── App.jsx                      # Root state polling & offline banner
+└── App.css                      # Design system styling & responsive layout
+```
+
+### 6.2 Key UI Features
+- **Prominent Networking Identity:** Visibly highlights `TCP`, `IPv4`, `SOCK_STREAM`, and `Port 5000` so professors and examiners immediately see the networking focus.
+- **Live Status Synchronization:** Queries `GET /api/server/status` to display real-time connection state (`TCP SERVER ONLINE` with a pulsing emerald dot).
+- **CSS Client-Server Topology Diagram:** Visualizes the central server branching to concurrent client threads over reliable byte streams.
+- **Live Server Terminal Card:** Displays low-level socket parameters, active socket counts, and questions delivered.
 
 ---
 
-### 2. Run Interactive CLI Quiz Client
+## 7. How to Run the Platform
 
-#### Step 1: Start Platform (FastAPI + Background TCP Server)
-In **Terminal 1**:
+### Terminal 1: Start FastAPI & Background TCP Server
 ```bash
 source venv/bin/activate
 uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 ```
-*(FastAPI automatically starts the Python TCP socket server on port 5000 via lifespan).*
 
-#### Step 2: Play the Quiz Interactively in Terminal
-In **Terminal 2**:
-```bash
-source venv/bin/activate
-python -m backend.networking.test_client Ishita --interactive
-```
-The terminal client connects via TCP port 5000, displays questions, and receives live feedback.
-
-#### Step 3: Inspect Real-Time Metrics via API
-In **Terminal 3**:
-```bash
-# Check TCP server metrics
-curl http://127.0.0.1:8000/api/server/status
-
-# Check live leaderboard
-curl http://127.0.0.1:8000/api/quiz/leaderboard
-```
-
----
-
-### 3. Start React Frontend
-In **Terminal 4**:
+### Terminal 2: Start React Frontend (Vite)
 ```bash
 cd frontend
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
-Visit: `http://localhost:5173`  
-Interactive API Docs: `http://localhost:8000/docs`
+
+- **Frontend Application:** `http://localhost:5173`
+- **FastAPI Bridge:** `http://127.0.0.1:8000`
+- **Interactive API Documentation:** `http://127.0.0.1:8000/docs`
+
+---
+
+## 8. Automated Testing Command Reference
+
+```bash
+source venv/bin/activate
+
+# 1. Stage 2: Genuine TCP Socket Networking Layer (8 tests)
+python -m backend.networking.test_stage2
+
+# 2. Stage 3: Server-Side QuizManager Logic & Validations (12 tests)
+python -m backend.quiz.test_quiz_engine
+
+# 3. Stage 3: Multi-User Concurrent TCP Quiz Integration (3 concurrent students)
+python -m backend.quiz.test_stage3_tcp_quiz
+
+# 4. Stage 4: FastAPI Endpoints, CORS & Lifespan (8 tests)
+python -m backend.api.test_api
+
+# 5. Frontend Production Bundle Check
+npm --prefix frontend run build
+```
