@@ -1,0 +1,46 @@
+# NetQuiz Platform — Render Blueprint Infrastructure-as-Code Configuration
+# Free Cloud Deployment for Computer Networks Mini-Project
+# Connect this GitHub repository to Render (https://dashboard.render.com/blueprints)
+# to deploy both services automatically with linked environment variables.
+
+services:
+  # 1. FastAPI Application Bridge & TCP Socket Engine
+  - type: web
+    name: netquiz-backend
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FASTAPI_HOST
+        value: 0.0.0.0
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: netquiz-frontend
+          property: host
+
+  # 2. React / Vite Web Client
+  - type: web
+    name: netquiz-frontend
+    runtime: static
+    plan: free
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: netquiz-backend
+          property: host
+          valueTemplate: https://${host}/api

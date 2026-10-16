@@ -6,7 +6,9 @@
  * React Browser (5173) ──[HTTP REST]──> FastAPI (8000) ──[In-Memory]──> QuizManager / TCP Server (5000)
  */
 
-const API_BASE_URL = "http://127.0.0.1:8000/api";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api"
+).replace(/\/+$/, "");
 
 /**
  * Generic fetch wrapper with timeout and structured error handling.

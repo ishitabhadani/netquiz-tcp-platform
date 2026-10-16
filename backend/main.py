@@ -14,6 +14,7 @@ FastAPI does NOT replace the TCP networking layer. It exposes network metrics,
 client registries, and server-side leaderboard data to the web UI.
 """
 
+import os
 from contextlib import asynccontextmanager
 import logging
 from fastapi import FastAPI
@@ -39,12 +40,12 @@ async def lifespan(app: FastAPI):
     
     # Ensure TCP server is running without creating duplicate instances
     if not tcp_server_instance.is_running:
-        logger.info("[LIFESPAN] Starting background TCP socket server on port 5000...")
+        logger.info(f"[LIFESPAN] Starting background TCP socket server on {tcp_server_instance.host}:{tcp_server_instance.port}...")
         try:
             tcp_server_instance.start(run_in_background=True)
         except OSError as e:
             logger.warning(
-                f"[LIFESPAN] Note: TCP server port 5000 might already be bound by a standalone process: {e}"
+                f"[LIFESPAN] Note: TCP server port {tcp_server_instance.port} might already be bound or restricted: {e}"
             )
         except Exception as e:
             logger.error(f"[LIFESPAN ERROR] Failed to start TCP server: {e}")
@@ -72,13 +73,21 @@ app = FastAPI(
 
 # Configure Cross-Origin Resource Sharing (CORS)
 # Allows the local React development server (Vite on port 5173 or localhost)
-# to query API endpoints securely without browser CORS blocking.
+# and deployed frontend URL to query API endpoints securely without browser CORS blocking.
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
+# Allow custom deployed frontend origin via FRONTEND_URL environment variable
+frontend_url_env = os.getenv("FRONTEND_URL")
+if frontend_url_env:
+    for url in frontend_url_env.split(","):
+        clean_url = url.strip().rstrip("/")
+        if clean_url and clean_url not in origins:
+            origins.append(clean_url)
 
 app.add_middleware(
     CORSMiddleware,
@@ -98,8 +107,8 @@ def root():
     return {
         "project": "NetQuiz — Multi-User TCP Quiz Platform",
         "role": "FastAPI Application / UI Bridge Layer",
-        "tcp_server_port": 5000,
-        "fastapi_port": 8000,
+        "tcp_server_port": tcp_server_instance.port,
+        "fastapi_port": FASTAPI_PORT,
         "endpoints": {
             "health": "/api/health",
             "tcp_server_status": "/api/server/status",
