@@ -637,8 +637,10 @@ class CustomQuizManager:
                 return None
 
             target_q = questions[idx]
+            qid = target_q.get("id") or target_q.get("question_id") or f"q_{idx + 1:03d}"
             return {
-                "id": target_q["id"],
+                "id": qid,
+                "question_id": qid,
                 "question": target_q["question"],
                 "type": target_q.get("type", "mcq"),
                 "options": target_q.get("options", {}),
@@ -681,9 +683,10 @@ class CustomQuizManager:
                 return False, {"error": "No more questions pending."}
 
             target_q = questions[idx]
-            if target_q["id"] != question_id:
+            expected_qid = target_q.get("id") or target_q.get("question_id") or f"q_{idx + 1:03d}"
+            if question_id and question_id not in (expected_qid, target_q.get("id"), str(idx + 1)):
                 return False, {
-                    "error": f"Invalid question sequence. Expected question ID '{target_q['id']}'."
+                    "error": f"Invalid question sequence. Expected question ID '{expected_qid}'."
                 }
 
             # Evaluate answer

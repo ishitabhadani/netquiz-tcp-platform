@@ -31,6 +31,55 @@ export function removeTeacherToken() {
 }
 
 /**
+ * Safely normalizes and formats any API error response into a human-readable string.
+ * Handles Error instances, strings, fetch errors, FastAPI {"detail": [...]} validation arrays,
+ * objects, and unknown errors without ever emitting "[object Object]".
+ */
+export function formatApiError(error) {
+  if (!error) return "An unexpected error occurred.";
+  if (typeof error === "string") {
+    if (error.trim() === "[object Object]") return "An unexpected error occurred. Please try again.";
+    return error;
+  }
+  if (error instanceof Error) {
+    return formatApiError(error.message);
+  }
+  if (Array.isArray(error)) {
+    const msgs = error
+      .map((item) => {
+        if (!item) return "";
+        if (typeof item === "string") return item;
+        if (item.msg) {
+          const loc = Array.isArray(item.loc)
+            ? item.loc.filter((x) => x !== "body").join(".")
+            : "";
+          return loc ? `${loc}: ${item.msg}` : item.msg;
+        }
+        if (item.message) return item.message;
+        if (item.detail) return formatApiError(item.detail);
+        try {
+          return JSON.stringify(item);
+        } catch {
+          return String(item);
+        }
+      })
+      .filter(Boolean);
+    return msgs.length > 0 ? msgs.join("; ") : "Validation error occurred.";
+  }
+  if (typeof error === "object") {
+    if (error.detail) return formatApiError(error.detail);
+    if (error.message) return formatApiError(error.message);
+    if (error.error) return formatApiError(error.error);
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "An unexpected error occurred.";
+    }
+  }
+  return String(error);
+}
+
+/**
  * Generic fetch wrapper with timeout and structured error handling.
  */
 async function request(endpoint, options = {}) {
@@ -63,9 +112,11 @@ async function request(endpoint, options = {}) {
       let detail = errorText;
       try {
         const parsed = JSON.parse(errorText);
-        detail = parsed.detail || errorText;
-      } catch (_) {}
-      throw new Error(detail || `HTTP ${response.status}`);
+        detail = formatApiError(parsed.detail || parsed.message || parsed.error || parsed);
+      } catch (_) {
+        detail = errorText || `HTTP ${response.status}`;
+      }
+      throw new Error(formatApiError(detail) || `HTTP ${response.status}`);
     }
 
     const data = await response.json();
@@ -74,7 +125,7 @@ async function request(endpoint, options = {}) {
     const message =
       err.name === "AbortError"
         ? "Connection timed out (backend unreachable)"
-        : err.message || "Network error";
+        : formatApiError(err.message || err);
     return { ok: false, error: message };
   }
 }
@@ -285,10 +336,12 @@ export async function fetchCustomQuestion(quizId, connectionId) {
 
 /** Submits an answer for server evaluation in a custom quiz. POST /api/quizzes/:id/answer */
 export async function submitCustomAnswer(quizId, connectionId, questionId, answer, studentName = null) {
+  const qid = String(questionId || "").trim();
   const payload = {
     connection_id: connectionId,
-    question_id: questionId,
-    answer: answer,
+    question_id: qid,
+    id: qid,
+    answer: String(answer || "").trim().toUpperCase(),
   };
   if (studentName) {
     payload.student_name = studentName;

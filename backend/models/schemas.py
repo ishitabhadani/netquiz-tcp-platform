@@ -4,7 +4,7 @@ Provides typed, validated response models for OpenAPI documentation and client r
 """
 
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class HealthResponse(BaseModel):
@@ -164,6 +164,7 @@ class QuestionItem(BaseModel):
 class QuestionItemStudent(BaseModel):
     """Client-safe question payload delivered to students (correct answer stripped)."""
     id: str
+    question_id: Optional[str] = None
     question: str
     type: str
     options: Union[Dict[str, str], List[str]]
@@ -171,6 +172,16 @@ class QuestionItemStudent(BaseModel):
     time_limit: int
     question_number: int
     total_questions: int
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_id_aliases(cls, values):
+        if isinstance(values, dict):
+            qid = values.get("id") or values.get("question_id")
+            if qid:
+                values["id"] = str(qid)
+                values["question_id"] = str(qid)
+        return values
 
 
 class QuizCreateRequest(BaseModel):
@@ -250,9 +261,20 @@ class CustomQuizJoinResponse(BaseModel):
 
 class CustomSubmitAnswerRequest(BaseModel):
     connection_id: str = Field(..., description="Unique student session ID")
-    question_id: str = Field(..., description="Target question ID being answered")
+    question_id: Optional[str] = Field(None, description="Target question ID being answered")
+    id: Optional[str] = Field(None, description="Alias for question_id")
     answer: str = Field(..., min_length=1, max_length=10, example="A")
     student_name: Optional[str] = Field(None, description="Optional student name verification")
+
+    @model_validator(mode="before")
+    @classmethod
+    def ensure_question_id(cls, values):
+        if isinstance(values, dict):
+            qid = values.get("question_id") or values.get("id")
+            if qid:
+                values["question_id"] = str(qid)
+                values["id"] = str(qid)
+        return values
 
 
 class CustomAnswerResultResponse(BaseModel):

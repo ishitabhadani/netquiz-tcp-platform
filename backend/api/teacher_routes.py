@@ -332,9 +332,15 @@ def submit_student_quiz_answer(
     quiz_id: str,
     body: CustomSubmitAnswerRequest
 ) -> CustomAnswerResultResponse:
+    qid = body.question_id or body.id
+    if not qid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="question_id is required."
+        )
     success, res = custom_quiz_manager_instance.submit_student_answer(
         connection_id=body.connection_id,
-        question_id=body.question_id,
+        question_id=qid,
         answer=body.answer,
         student_name=body.student_name
     )

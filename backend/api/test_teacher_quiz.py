@@ -410,6 +410,77 @@ class TestTeacherQuizSystem(unittest.TestCase):
         self.assertEqual(lb[1]["student_name"], "Student2")
         self.assertEqual(lb[1]["score"], 0)
 
+    def test_06_student_custom_quiz_aliases_and_error_handling(self):
+        """Verifies QuestionItemStudent aliases, CustomSubmitAnswerRequest aliases, and error safety."""
+        # 1. Login & create single question quiz
+        login_res = self.client.post("/api/teacher/login", json={
+            "email": "teacher@netquiz.edu",
+            "password": "teacher123"
+        })
+        token = login_res.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        q_res = self.client.post("/api/teacher/quizzes", headers=headers, json={
+            "title": "Maths 1 Test",
+            "description": "Evaluation of basic addition",
+            "category": "Mathematics",
+            "type": "Class Quiz",
+            "questions": [
+                {
+                    "id": "m_001",
+                    "question": "What is 2+2?",
+                    "type": "mcq",
+                    "options": {"A": "2", "B": "4", "C": "6", "D": "8"},
+                    "correct_answer": "B",
+                    "explanation": "2 + 2 equals 4.",
+                    "points": 1,
+                    "time_limit": 30
+                }
+            ]
+        })
+        quiz_id = q_res.json()["quiz_id"]
+        self.client.post(f"/api/teacher/quizzes/{quiz_id}/publish", headers=headers)
+        self.client.post(f"/api/teacher/quizzes/{quiz_id}/start", headers=headers)
+
+        # 2. Student joins
+        join_res = self.client.post(f"/api/quizzes/{quiz_id}/join", json={"student_name": "ishita"})
+        self.assertEqual(join_res.status_code, 200)
+        conn_id = join_res.json()["connection_id"]
+
+        # 3. Fetch question & verify both id and question_id are present
+        q_item = self.client.get(f"/api/quizzes/{quiz_id}/question?connection_id={conn_id}").json()
+        self.assertEqual(q_item["id"], "m_001")
+        self.assertEqual(q_item["question_id"], "m_001")
+        self.assertNotIn("correct_answer", q_item)
+        self.assertNotIn("explanation", q_item)
+
+        # 4. Submit answer using 'id' alias instead of question_id
+        ans_res = self.client.post(f"/api/quizzes/{quiz_id}/answer", json={
+            "connection_id": conn_id,
+            "id": "m_001",
+            "answer": "B",
+            "student_name": "ishita"
+        })
+        self.assertEqual(ans_res.status_code, 200)
+        ans_data = ans_res.json()
+        self.assertTrue(ans_data["correct"])
+        self.assertEqual(ans_data["current_score"], 1)
+        self.assertTrue(ans_data["quiz_completed"])
+
+        # 5. Fetch student summary
+        sum_res = self.client.get(f"/api/quizzes/{quiz_id}/summary?connection_id={conn_id}")
+        self.assertEqual(sum_res.status_code, 200)
+        self.assertEqual(sum_res.json()["score"], 1)
+        self.assertEqual(sum_res.json()["total_questions"], 1)
+
+        # 6. Verify quiz-specific leaderboard
+        lb_res = self.client.get(f"/api/quizzes/{quiz_id}/leaderboard")
+        self.assertEqual(lb_res.status_code, 200)
+        lb_entries = lb_res.json()["leaderboard"]
+        self.assertEqual(len(lb_entries), 1)
+        self.assertEqual(lb_entries[0]["student_name"], "ishita")
+        self.assertEqual(lb_entries[0]["score"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

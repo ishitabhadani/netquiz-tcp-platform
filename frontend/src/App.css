@@ -1136,6 +1136,52 @@
   box-shadow: var(--shadow-xs);
 }
 
+.quiz-tag-chip {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.quiz-question-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.quiz-type-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--indigo-light);
+  color: var(--indigo);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+.lb-you-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.05em;
+}
+
 /* Progress bar */
 .quiz-progress-wrap {
   display: flex;
