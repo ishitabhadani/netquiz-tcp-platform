@@ -35,8 +35,11 @@ Python TCP Socket Server [Port 5000] (Stage 2)
 ```
 mini project/
 ├── backend/
-│   ├── api/             # FastAPI REST endpoints (/api/health)
-│   ├── models/          # Schemas and data models
+│   ├── api/             # FastAPI REST endpoints
+│   │   ├── routes.py         # /api/health, /api/server/status, /api/server/clients, /api/quiz/*
+│   │   └── test_api.py       # Automated API test suite
+│   ├── models/          # Typed Pydantic schemas
+│   │   └── schemas.py        # Request/response validation schemas
 │   ├── networking/      # Real Python TCP socket layer
 │   │   ├── protocol.py       # Message framing (newline-delimited JSON buffer)
 │   │   ├── client_handler.py # Multithreaded client handler thread
@@ -49,7 +52,7 @@ mini project/
 │   │   ├── test_quiz_engine.py      # Unit test suite for quiz logic
 │   │   └── test_stage3_tcp_quiz.py  # Multi-user concurrent TCP quiz integration test
 │   ├── config.py        # Host & Port definitions (FastAPI: 8000, TCP: 5000)
-│   └── main.py          # FastAPI application entry point
+│   └── main.py          # FastAPI application entry point with Lifespan & CORS
 ├── frontend/
 │   ├── src/
 │   │   ├── services/    # api.js for calling backend endpoints
@@ -58,7 +61,7 @@ mini project/
 │   │   └── index.css    # Clean academic styling system
 │   ├── package.json
 │   └── vite.config.js
-├── requirements.txt     # Python dependencies (fastapi, uvicorn)
+├── requirements.txt     # Python dependencies (fastapi, uvicorn, httpx)
 ├── .gitignore
 └── README.md
 ```
@@ -146,7 +149,56 @@ Client (Student)
 
 ---
 
-## 5. How to Run and Test
+## 5. Stage 4: FastAPI Application / Bridge Layer
+
+FastAPI acts as an **application bridge** between the web browser and the underlying Python TCP socket server.
+
+### 5.1 Layer Separation & Port Allocation
+
+```
+React Browser [Port 5173]
+       │
+       │ HTTP REST (JSON)
+       ▼
+FastAPI Application Layer [Port 8000]
+       │
+       │ Shared In-Memory Metrics & State
+       ▼
+Python TCP Socket Server [Port 5000]
+       │
+       ├──── TCP Client 1 (Student A Thread)
+       ├──── TCP Client 2 (Student B Thread)
+       └──── TCP Client 3 (Student C Thread)
+```
+
+| Component | Port | Transport Protocol | Role |
+|---|:---:|:---:|---|
+| **React Frontend** | `5173` | HTTP / Browser | User interface running in the student's browser |
+| **FastAPI Bridge** | `8000` | HTTP / REST | Exposes live TCP status, client registries, and leaderboard to web UI |
+| **Python TCP Server** | `5000` | TCP (`SOCK_STREAM`) | Genuine Computer Networks transport layer for quiz message exchange |
+
+### 5.2 Why FastAPI Exists & Viva Explanation
+- **Why can't React talk directly to port 5000?**  
+  Web browsers are constrained by security sandboxes and cannot open raw TCP sockets (`socket.socket(AF_INET, SOCK_STREAM)`). FastAPI bridges this gap by exposing HTTP REST endpoints that query the live TCP server and quiz engine.
+- **Does FastAPI replace TCP?**  
+  **No.** The actual Computer Networks quiz protocol (`join`, `start_quiz`, `question`, `answer`, `answer_result`, `quiz_end`) travels strictly over the Python TCP socket server on port `5000`.
+- **What is CORS?**  
+  Cross-Origin Resource Sharing. Because the frontend runs on origin `http://localhost:5173` and the backend runs on `http://127.0.0.1:8000`, the browser requires CORS headers (`Access-Control-Allow-Origin`) before allowing HTTP requests.
+- **FastAPI Lifespan Context Manager:**  
+  When FastAPI starts up, it automatically initializes the background TCP socket server on port `5000`. When FastAPI shuts down, it releases port `5000` cleanly, avoiding duplicate server processes.
+
+### 5.3 Exposed API Endpoints
+
+- `GET /api/health`: Health status of FastAPI bridge layer.
+- `GET /api/server/status`: Live TCP metrics (active clients, total connections, packets sent/received, questions sent, answers received, completed quizzes).
+- `GET /api/server/clients`: Currently connected TCP clients registry (connection ID, student name, IP, ephemeral port, live score).
+- `GET /api/quiz/info`: Question bank configuration and topic metadata.
+- `GET /api/quiz/leaderboard`: Server-evaluated student leaderboard ranked by score and percentage.
+- `GET /docs`: Interactive Swagger / OpenAPI documentation.
+
+---
+
+## 6. How to Run and Test
 
 ### 1. Run All Automated Test Suites
 
@@ -161,18 +213,22 @@ python -m backend.quiz.test_quiz_engine
 
 # 3. Verify Stage 3 Multi-User Concurrent TCP Quiz (3 concurrent students)
 python -m backend.quiz.test_stage3_tcp_quiz
+
+# 4. Verify Stage 4 FastAPI Endpoints, CORS & Lifespan (8 tests)
+python -m backend.api.test_api
 ```
 
 ---
 
 ### 2. Run Interactive CLI Quiz Client
 
-#### Step 1: Start TCP Server
+#### Step 1: Start Platform (FastAPI + Background TCP Server)
 In **Terminal 1**:
 ```bash
 source venv/bin/activate
-python -m backend.networking.tcp_server
+uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 ```
+*(FastAPI automatically starts the Python TCP socket server on port 5000 via lifespan).*
 
 #### Step 2: Play the Quiz Interactively in Terminal
 In **Terminal 2**:
@@ -180,42 +236,25 @@ In **Terminal 2**:
 source venv/bin/activate
 python -m backend.networking.test_client Ishita --interactive
 ```
-The terminal client will connect via TCP port 5000, display each Computer Networks question, prompt you for `A/B/C/D`, display live server evaluations with explanations, and finish with a formatted results card!
+The terminal client connects via TCP port 5000, displays questions, and receives live feedback.
+
+#### Step 3: Inspect Real-Time Metrics via API
+In **Terminal 3**:
+```bash
+# Check TCP server metrics
+curl http://127.0.0.1:8000/api/server/status
+
+# Check live leaderboard
+curl http://127.0.0.1:8000/api/quiz/leaderboard
+```
 
 ---
 
-### 3. Run Simultaneous Multi-Client Simulation
-
-In **Terminal 2 (Student A)**:
-```bash
-python -m backend.networking.test_client Ishita --quiz --answers A A C B C B C B B C
-```
-
-In **Terminal 3 (Student B)**:
-```bash
-python -m backend.networking.test_client Aarav --quiz --answers A A A A A B C B B C
-```
-
-In **Terminal 4 (Student C)**:
-```bash
-python -m backend.networking.test_client Riya --quiz --answers B C C B C B C B B C
-```
-
-Each client executes concurrently over TCP, receiving independent scores (Ishita: 8/10, Aarav: 5/10, Riya: 10/10) with verified state isolation.
-
----
-
-## 6. Web Platform Run Instructions
-
-### Start FastAPI Application Bridge
-```bash
-source venv/bin/activate
-uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-### Start React Frontend
+### 3. Start React Frontend
+In **Terminal 4**:
 ```bash
 cd frontend
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
-Visit: `http://localhost:5173`
+Visit: `http://localhost:5173`  
+Interactive API Docs: `http://localhost:8000/docs`
