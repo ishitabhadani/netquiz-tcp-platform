@@ -21,3 +21,12 @@ TCP_SERVER_PORT = int(os.getenv("TCP_SERVER_PORT", "5000"))
 # Quiz Configuration (Stage 3)
 QUIZ_QUESTION_COUNT = 10
 QUESTIONS_FILE_PATH = BASE_DIR / "backend" / "quiz" / "questions.json"
+
+# Persistent Custom Quiz Data Storage
+DATA_DIR = BASE_DIR / "backend" / "data"
+CUSTOM_QUIZZES_FILE_PATH = DATA_DIR / "quizzes.json"
+
+# Teacher Access Credentials
+TEACHER_EMAIL = os.getenv("TEACHER_EMAIL", "teacher@netquiz.edu")
+TEACHER_PASSWORD = os.getenv("TEACHER_PASSWORD", "teacher123")
+TEACHER_SECRET_KEY = os.getenv("TEACHER_SECRET_KEY", "netquiz-teacher-secret-key-2026")

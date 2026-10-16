@@ -12,6 +12,24 @@ const API_BASE_URL = (
     : (import.meta.env.VITE_API_BASE_URL || "https://netquiz-backend-rsba.onrender.com/api")
 ).replace(/\/+$/, "");
 
+const TEACHER_TOKEN_KEY = "netquiz_teacher_token";
+
+export function getTeacherToken() {
+  return localStorage.getItem(TEACHER_TOKEN_KEY) || "";
+}
+
+export function setTeacherToken(token) {
+  if (token) {
+    localStorage.setItem(TEACHER_TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TEACHER_TOKEN_KEY);
+  }
+}
+
+export function removeTeacherToken() {
+  localStorage.removeItem(TEACHER_TOKEN_KEY);
+}
+
 /**
  * Generic fetch wrapper with timeout and structured error handling.
  */
@@ -21,14 +39,21 @@ async function request(endpoint, options = {}) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
 
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    };
+
+    const token = getTeacherToken();
+    if (token && !headers.Authorization && !headers.authorization) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-      },
+      headers,
     });
 
     clearTimeout(timeoutId);
@@ -147,3 +172,142 @@ export async function fetchQuizSummary(connectionId) {
     `/quiz/summary?connection_id=${encodeURIComponent(connectionId)}`
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Teacher Dashboard Endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Authenticates teacher credentials. POST /api/teacher/login */
+export async function teacherLogin(email, password) {
+  return request("/teacher/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+/** Verifies current teacher session. GET /api/teacher/me */
+export async function getTeacherProfile() {
+  return request("/teacher/me");
+}
+
+/** Retrieves summary statistics for teacher dashboard. GET /api/teacher/stats */
+export async function getTeacherStats() {
+  return request("/teacher/stats");
+}
+
+/** Retrieves all quizzes created by teacher. GET /api/teacher/quizzes */
+export async function getTeacherQuizzes() {
+  return request("/teacher/quizzes");
+}
+
+/** Retrieves complete quiz details (including correct answers). GET /api/teacher/quizzes/:id */
+export async function getTeacherQuiz(quizId) {
+  return request(`/teacher/quizzes/${encodeURIComponent(quizId)}`);
+}
+
+/** Creates a new custom quiz with questions. POST /api/teacher/quizzes */
+export async function createTeacherQuiz(quizData) {
+  return request("/teacher/quizzes", {
+    method: "POST",
+    body: JSON.stringify(quizData),
+  });
+}
+
+/** Updates metadata and questions for an existing quiz. PUT /api/teacher/quizzes/:id */
+export async function updateTeacherQuiz(quizId, quizData) {
+  return request(`/teacher/quizzes/${encodeURIComponent(quizId)}`, {
+    method: "PUT",
+    body: JSON.stringify(quizData),
+  });
+}
+
+/** Deletes a quiz. DELETE /api/teacher/quizzes/:id */
+export async function deleteTeacherQuiz(quizId) {
+  return request(`/teacher/quizzes/${encodeURIComponent(quizId)}`, {
+    method: "DELETE",
+  });
+}
+
+/** Transitions quiz from Draft to Published. POST /api/teacher/quizzes/:id/publish */
+export async function publishTeacherQuiz(quizId) {
+  return request(`/teacher/quizzes/${encodeURIComponent(quizId)}/publish`, {
+    method: "POST",
+  });
+}
+
+/** Activates quiz for live participation. POST /api/teacher/quizzes/:id/start */
+export async function startTeacherQuiz(quizId) {
+  return request(`/teacher/quizzes/${encodeURIComponent(quizId)}/start`, {
+    method: "POST",
+  });
+}
+
+/** Ends the quiz, preventing new attempts. POST /api/teacher/quizzes/:id/end */
+export async function endTeacherQuiz(quizId) {
+  return request(`/teacher/quizzes/${encodeURIComponent(quizId)}/end`, {
+    method: "POST",
+  });
+}
+
+/** Retrieves quiz-specific leaderboard for teacher. GET /api/teacher/quizzes/:id/leaderboard */
+export async function getTeacherQuizLeaderboard(quizId) {
+  return request(`/teacher/quizzes/${encodeURIComponent(quizId)}/leaderboard`);
+}
+
+/** Retrieves live participant tracking for teacher. GET /api/teacher/quizzes/:id/participants */
+export async function getTeacherQuizParticipants(quizId) {
+  return request(`/teacher/quizzes/${encodeURIComponent(quizId)}/participants`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom Student Quiz Endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Retrieves public quiz details for student join view (safe, no answers). GET /api/quizzes/:id */
+export async function getPublicQuiz(quizId) {
+  return request(`/quizzes/${encodeURIComponent(quizId)}`);
+}
+
+/** Student joins a specific custom quiz attempt. POST /api/quizzes/:id/join */
+export async function joinCustomQuiz(quizId, studentName) {
+  return request(`/quizzes/${encodeURIComponent(quizId)}/join`, {
+    method: "POST",
+    body: JSON.stringify({ student_name: studentName }),
+  });
+}
+
+/** Retrieves student's current question (safe, no answers). GET /api/quizzes/:id/question */
+export async function fetchCustomQuestion(quizId, connectionId) {
+  return request(
+    `/quizzes/${encodeURIComponent(quizId)}/question?connection_id=${encodeURIComponent(connectionId)}`
+  );
+}
+
+/** Submits an answer for server evaluation in a custom quiz. POST /api/quizzes/:id/answer */
+export async function submitCustomAnswer(quizId, connectionId, questionId, answer, studentName = null) {
+  const payload = {
+    connection_id: connectionId,
+    question_id: questionId,
+    answer: answer,
+  };
+  if (studentName) {
+    payload.student_name = studentName;
+  }
+  return request(`/quizzes/${encodeURIComponent(quizId)}/answer`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Retrieves final student summary for completed custom quiz. GET /api/quizzes/:id/summary */
+export async function fetchCustomSummary(quizId, connectionId) {
+  return request(
+    `/quizzes/${encodeURIComponent(quizId)}/summary?connection_id=${encodeURIComponent(connectionId)}`
+  );
+}
+
+/** Retrieves the public leaderboard for a custom quiz. GET /api/quizzes/:id/leaderboard */
+export async function fetchCustomLeaderboard(quizId) {
+  return request(`/quizzes/${encodeURIComponent(quizId)}/leaderboard`);
+}
+

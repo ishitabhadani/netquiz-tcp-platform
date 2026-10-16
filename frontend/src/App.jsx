@@ -5,24 +5,34 @@ import { Home } from "./pages/Home";
 import { Quiz } from "./pages/Quiz";
 import { Results } from "./pages/Results";
 import { Leaderboard } from "./pages/Leaderboard";
+import { TeacherLogin } from "./pages/teacher/TeacherLogin";
+import { TeacherDashboard } from "./pages/teacher/TeacherDashboard";
+import { TeacherCreateQuiz } from "./pages/teacher/TeacherCreateQuiz";
+import { TeacherQuizDetails } from "./pages/teacher/TeacherQuizDetails";
+import { TeacherQuizLeaderboard } from "./pages/teacher/TeacherQuizLeaderboard";
+import { TeacherShareQuiz } from "./pages/teacher/TeacherShareQuiz";
+import { StudentCustomQuiz } from "./pages/StudentCustomQuiz";
+import { parseRoute, subscribeToNavigation, navigateTo } from "./services/router";
 import { getHealth, getServerStatus, getQuizInfo } from "./services/api";
 import "./App.css";
 
 /**
- * NetQuiz App — Root component with state-based page routing.
- *
- * Pages (views):
- *  "home"        → Landing page with join form and network stats
- *  "quiz"        → Interactive Q&A flow (requires active session)
- *  "results"     → Final score display
- *  "leaderboard" → Live server-side leaderboard
- *
- * Architecture note:
- *  We use simple state-driven routing rather than React Router because
- *  this is a single-session quiz app — no URL navigation is needed.
+ * NetQuiz App — Root component with dual-role routing:
+ *  1. Student generic TCP quiz & scoped custom quiz (/join/:quizId)
+ *  2. Teacher portal & management dashboard (/teacher/*)
  */
 function App() {
-  // ── Page routing ───────────────────────────────────────────────────────────
+  // ── URL Route state ────────────────────────────────────────────────────────
+  const [currentRoute, setCurrentRoute] = useState(() => parseRoute());
+
+  useEffect(() => {
+    const unsubscribe = subscribeToNavigation(() => {
+      setCurrentRoute(parseRoute());
+    });
+    return unsubscribe;
+  }, []);
+
+  // ── Generic Student Page routing ───────────────────────────────────────────
   const [view, setView] = useState("home");
   const [session, setSession] = useState(null);   // { connectionId, studentName, totalQuestions }
   const [summary, setSummary] = useState(null);   // final quiz result from server
@@ -77,7 +87,7 @@ function App() {
     }
   }, []);
 
-  /** Called by Home when the student successfully joins the quiz */
+  /** Called by Home when the student successfully joins the generic quiz */
   const handleJoinSuccess = (newSession) => {
     sessionStorage.setItem("netquiz_active_session", "true");
     setSessionLostNotice(false);
@@ -92,11 +102,10 @@ function App() {
     setSummary(quizSummary);
     setView("results");
     window.scrollTo(0, 0);
-    // Refresh server metrics after quiz completion
     fetchPlatformData();
   };
 
-  /** Navigate to leaderboard */
+  /** Navigate to generic leaderboard */
   const handleViewLeaderboard = () => {
     setView("leaderboard");
     window.scrollTo(0, 0);
@@ -108,6 +117,7 @@ function App() {
     setSession(null);
     setSummary(null);
     setView("home");
+    navigateTo("/");
     window.scrollTo(0, 0);
     fetchPlatformData();
   };
@@ -117,11 +127,48 @@ function App() {
     sessionStorage.removeItem("netquiz_active_session");
     setSession(null);
     setView("home");
+    navigateTo("/");
     window.scrollTo(0, 0);
     fetchPlatformData();
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── ROUTE DISPATCH ─────────────────────────────────────────────────────────
+
+  // 1. Teacher Routes
+  if (currentRoute.name === "teacher-login") {
+    return <TeacherLogin />;
+  }
+
+  if (currentRoute.name === "teacher-create") {
+    return <TeacherCreateQuiz />;
+  }
+
+  if (currentRoute.name === "teacher-edit") {
+    return <TeacherCreateQuiz quizId={currentRoute.params.quizId} />;
+  }
+
+  if (currentRoute.name === "teacher-leaderboard") {
+    return <TeacherQuizLeaderboard quizId={currentRoute.params.quizId} />;
+  }
+
+  if (currentRoute.name === "teacher-share") {
+    return <TeacherShareQuiz quizId={currentRoute.params.quizId} />;
+  }
+
+  if (currentRoute.name === "teacher-quiz-details") {
+    return <TeacherQuizDetails quizId={currentRoute.params.quizId} />;
+  }
+
+  if (currentRoute.name === "teacher-dashboard") {
+    return <TeacherDashboard />;
+  }
+
+  // 2. Student Custom Quiz Route (/join/:quizId or /quiz/:quizId)
+  if (currentRoute.name === "student-custom-quiz") {
+    return <StudentCustomQuiz quizId={currentRoute.params.quizId} />;
+  }
+
+  // 3. Default Generic Student Platform
   return (
     <div className="netquiz-app">
       <Navbar

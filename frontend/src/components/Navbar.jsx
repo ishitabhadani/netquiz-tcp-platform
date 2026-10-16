@@ -44,6 +44,17 @@ export function Navbar({ isOnline, isLoading, onRefresh, currentView, onNavHome,
           >
             🏆 Leaderboard
           </button>
+          <button
+            className="nav-link nav-link-teacher"
+            onClick={() => {
+              window.history.pushState({}, "", "/teacher");
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            }}
+            id="nav-teacher-portal-btn"
+            title="Faculty & Teacher Portal"
+          >
+            👨‍🏫 Teacher Portal
+          </button>
         </nav>
 
         {/* Actions */}

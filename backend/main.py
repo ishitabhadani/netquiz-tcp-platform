@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from backend.api.routes import router as api_router
+from backend.api.teacher_routes import router as teacher_router
 from backend.config import FASTAPI_HOST, FASTAPI_PORT
 from backend.networking.tcp_server import tcp_server_instance
 
@@ -107,6 +108,7 @@ app.add_middleware(
 
 # Mount all API routes under /api
 app.include_router(api_router, prefix="/api")
+app.include_router(teacher_router, prefix="/api")
 
 
 @app.get("/", tags=["General"])
