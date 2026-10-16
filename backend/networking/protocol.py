@@ -34,26 +34,25 @@ def send_json(sock: socket.socket, message: Dict[str, Any]) -> None:
 class MessageFramingBuffer:
     """
     Accumulates incoming raw TCP byte streams and extracts complete,
-    newline-delimited JSON messages.
+    newline-delimited JSON messages into an internal queue.
     
     Maintains incomplete stream fragments in memory until the terminating
-    '\\n' delimiter arrives.
+    '\\n' delimiter arrives. Handles packet coalescing where multiple messages
+    arrive in a single socket.recv() buffer.
     """
     def __init__(self) -> None:
         self.buffer = ""
+        self.queue: List[Tuple[Optional[Dict[str, Any]], Optional[str]]] = []
 
     def feed(self, data: bytes) -> List[Tuple[Optional[Dict[str, Any]], Optional[str]]]:
         """
         Feeds new raw bytes received from socket.recv().
-        
-        Returns a list of tuples: (parsed_json_dict, error_message).
-        - If parsing succeeds: (dict, None)
-        - If JSON is malformed: (None, error_str)
+        Enqueues and returns any newly parsed complete messages.
         """
         # Decode incoming bytes to UTF-8 text (replacing invalid characters safely)
         self.buffer += data.decode("utf-8", errors="replace")
         
-        messages: List[Tuple[Optional[Dict[str, Any]], Optional[str]]] = []
+        new_messages: List[Tuple[Optional[Dict[str, Any]], Optional[str]]] = []
         
         # Extract complete messages separated by newline delimiter
         while "\n" in self.buffer:
@@ -66,10 +65,23 @@ class MessageFramingBuffer:
             try:
                 parsed = json.loads(line)
                 if isinstance(parsed, dict):
-                    messages.append((parsed, None))
+                    item = (parsed, None)
                 else:
-                    messages.append((None, "Message payload must be a JSON object (dictionary)"))
+                    item = (None, "Message payload must be a JSON object (dictionary)")
             except json.JSONDecodeError as e:
-                messages.append((None, f"Invalid JSON format: {str(e)} (raw line: '{line}')"))
+                item = (None, f"Invalid JSON format: {str(e)} (raw line: '{line}')")
+
+            self.queue.append(item)
+            new_messages.append(item)
                 
-        return messages
+        return new_messages
+
+    def has_message(self) -> bool:
+        """Returns True if one or more complete messages are ready in the queue."""
+        return len(self.queue) > 0
+
+    def get_message(self) -> Optional[Tuple[Optional[Dict[str, Any]], Optional[str]]]:
+        """Pops and returns the oldest parsed message from the queue, or None if empty."""
+        if self.queue:
+            return self.queue.pop(0)
+        return None

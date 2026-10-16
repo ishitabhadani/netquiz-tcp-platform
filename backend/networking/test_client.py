@@ -13,7 +13,7 @@ import argparse
 import socket
 import sys
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.config import TCP_SERVER_HOST, TCP_SERVER_PORT
 from backend.networking.protocol import MessageFramingBuffer, send_json
@@ -58,25 +58,32 @@ class QuizTCPClient:
     def receive_message(self, timeout: float = 5.0) -> Optional[Dict[str, Any]]:
         """
         Receives bytes from socket until at least one complete message is parsed.
+        First drains any queued messages that arrived together in a previous TCP segment.
         """
         if not self.sock:
             return None
 
+        # Check if previous TCP recv() chunk already buffered complete messages
+        if self.framing_buffer.has_message():
+            msg, err = self.framing_buffer.get_message()
+            if err:
+                print(f"[CLIENT ERROR] Server sent malformed response: {err}")
+            return msg
+
         self.sock.settimeout(timeout)
         try:
             while True:
-                # Check if buffer already has a complete message
                 data = self.sock.recv(4096)
                 if not data:
                     print("[CLIENT] Connection closed by server.")
                     return None
 
-                parsed_items = self.framing_buffer.feed(data)
-                for msg, err in parsed_items:
+                self.framing_buffer.feed(data)
+                if self.framing_buffer.has_message():
+                    msg, err = self.framing_buffer.get_message()
                     if err:
                         print(f"[CLIENT ERROR] Server sent malformed response: {err}")
-                    elif msg:
-                        return msg
+                    return msg
         except socket.timeout:
             print("[CLIENT ERROR] Timed out waiting for server response.")
             return None
@@ -104,6 +111,109 @@ class QuizTCPClient:
         else:
             print(f"[CLIENT] Unexpected response: {response}")
             return False
+
+    def start_quiz(self) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+        """
+        Sends start_quiz request to the server.
+        Returns tuple: (quiz_start_payload, first_question_payload)
+        """
+        print("[CLIENT] Requesting quiz start...")
+        self.send({"type": "start_quiz"})
+        
+        start_ack = self.receive_message()
+        if not start_ack or start_ack.get("type") != "quiz_start":
+            print(f"[CLIENT ERROR] Expected quiz_start, got: {start_ack}")
+            return None, None
+            
+        print(f"[CLIENT] Quiz Started! Total Questions: {start_ack.get('total_questions')}")
+        
+        # Server automatically transmits question 1 right after quiz_start
+        first_q = self.receive_message()
+        if not first_q or first_q.get("type") != "question":
+            print(f"[CLIENT ERROR] Expected first question, got: {first_q}")
+            return start_ack, None
+            
+        return start_ack, first_q
+
+    def submit_answer(self, question_id: int, answer: str) -> Optional[Dict[str, Any]]:
+        """
+        Submits answer option for a specific question ID to the server.
+        """
+        self.send({
+            "type": "answer",
+            "question_id": question_id,
+            "answer": answer
+        })
+        return self.receive_message()
+
+    def run_quiz(self, preset_answers: Optional[List[str]] = None, interactive: bool = False) -> Optional[Dict[str, Any]]:
+        """
+        Plays through the entire quiz.
+        Either accepts user terminal inputs (interactive) or feeds preset answers.
+        """
+        start_info, current_q = self.start_quiz()
+        if not current_q:
+            return None
+
+        total_q = start_info.get("total_questions", 10)
+        ans_idx = 0
+
+        while current_q and current_q.get("type") == "question":
+            q_num = current_q.get("question_number")
+            q_id = current_q.get("question_id")
+            q_text = current_q.get("question")
+            options = current_q.get("options", {})
+
+            print(f"\n==================================================")
+            print(f" QUESTION {q_num:02d} / {total_q:02d} (ID: {q_id})")
+            print(f"==================================================")
+            print(f"{q_text}\n")
+            for key in sorted(options.keys()):
+                print(f"  [{key}] {options[key]}")
+            print(f"==================================================")
+
+            if interactive:
+                chosen = ""
+                while chosen not in ["A", "B", "C", "D"]:
+                    chosen = input("\nYour answer (A/B/C/D): ").strip().upper()
+            else:
+                if preset_answers and ans_idx < len(preset_answers):
+                    chosen = preset_answers[ans_idx]
+                else:
+                    chosen = "B"  # Default fallback option
+                print(f"[AUTO] Submitting Answer: {chosen}")
+                ans_idx += 1
+
+            result = self.submit_answer(q_id, chosen)
+            if not result or result.get("type") != "answer_result":
+                print(f"[CLIENT ERROR] Invalid answer response from server: {result}")
+                break
+
+            status_str = "CORRECT" if result.get("correct") else "INCORRECT"
+            print(f"--> [{status_str}] Correct: {result.get('correct_answer')} | Score: {result.get('current_score')}/{total_q}")
+            if result.get("explanation"):
+                print(f"    Concept: {result.get('explanation')}")
+
+            if result.get("quiz_completed"):
+                # Receive final summary
+                end_summary = self.receive_message()
+                if end_summary and end_summary.get("type") == "quiz_end":
+                    print("\n" + "=" * 50)
+                    print("                QUIZ COMPLETE")
+                    print("=" * 50)
+                    print(f" Student:    {end_summary.get('student_name')}")
+                    print(f" Final Score: {end_summary.get('score')} / {end_summary.get('total_questions')}")
+                    print(f" Percentage:  {end_summary.get('percentage')}%")
+                    print(f" Correct:    {end_summary.get('correct_answers')}")
+                    print(f" Incorrect:  {end_summary.get('incorrect_answers')}")
+                    print("=" * 50 + "\n")
+                    return end_summary
+                break
+            else:
+                # Receive next question
+                current_q = self.receive_message()
+
+        return None
 
     def ping(self) -> bool:
         """Sends a ping message and waits for pong."""
@@ -153,6 +263,9 @@ class QuizTCPClient:
 def main():
     parser = argparse.ArgumentParser(description="NetQuiz TCP Test Client")
     parser.add_argument("name", nargs="?", default="Ishita", help="Student name")
+    parser.add_argument("--quiz", action="store_true", help="Start and participate in the quiz")
+    parser.add_argument("--interactive", action="store_true", help="Prompt user for quiz answers in terminal")
+    parser.add_argument("--answers", nargs="+", help="Predefined list of answers for automated run (e.g. B C C B ...)")
     parser.add_argument("--ping", action="store_true", help="Send a ping test after joining")
     parser.add_argument("--stay", type=int, default=0, help="Seconds to stay connected before exiting")
     parser.add_argument("--malformed", action="store_true", help="Send malformed JSON to test server resilience")
@@ -173,6 +286,9 @@ def main():
                 if args.ping:
                     client.ping()
 
+                if args.quiz or args.interactive or args.answers:
+                    client.run_quiz(preset_answers=args.answers, interactive=args.interactive)
+
                 if args.stay > 0:
                     print(f"[CLIENT] Staying connected for {args.stay} seconds...")
                     time.sleep(args.stay)
@@ -182,3 +298,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

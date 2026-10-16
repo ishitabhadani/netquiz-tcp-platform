@@ -78,9 +78,14 @@ class ClientHandler(threading.Thread):
                     break
 
                 # Feed bytes into the message framing buffer
-                parsed_items = self.framing_buffer.feed(data)
+                self.framing_buffer.feed(data)
                 
-                for message, error in parsed_items:
+                while self.framing_buffer.has_message():
+                    item = self.framing_buffer.get_message()
+                    if not item:
+                        break
+                    message, error = item
+
                     if error:
                         logger.warning(f"[ERROR] Invalid payload from {self.connection_id}: {error}")
                         self.server.record_message_received()
@@ -124,6 +129,84 @@ class ClientHandler(threading.Thread):
                 "connection_id": self.connection_id,
                 "student_name": self.student_name
             })
+
+        elif msg_type in ["start_quiz", "quiz_start"]:
+            logger.info(f"[QUIZ] {self.student_name} requested quiz start.")
+            ok, start_data = self.server.quiz_manager.start_quiz(
+                self.connection_id,
+                self.student_name or "Anonymous"
+            )
+            if not ok:
+                self._safe_send({
+                    "type": "error",
+                    "message": start_data.get("error", "Unable to start quiz.")
+                })
+                return
+
+            # 1. Send quiz_start confirmation
+            self._safe_send(start_data)
+
+            # 2. Immediately send the first question
+            first_question = self.server.quiz_manager.get_current_question(self.connection_id)
+            if first_question:
+                self.server.record_question_sent()
+                logger.info(f"[QUIZ] Sending question 1 to {self.student_name}")
+                self._safe_send(first_question)
+
+        elif msg_type == "answer":
+            raw_qid = message.get("question_id")
+            raw_ans = message.get("answer")
+
+            if raw_qid is None or raw_ans is None:
+                self._safe_send({
+                    "type": "error",
+                    "message": "Missing 'question_id' or 'answer' in answer submission."
+                })
+                return
+
+            try:
+                question_id = int(raw_qid)
+            except (ValueError, TypeError):
+                self._safe_send({
+                    "type": "error",
+                    "message": f"Invalid question_id format: {raw_qid}"
+                })
+                return
+
+            self.server.record_answer_received()
+            logger.info(f"[QUIZ] {self.student_name} submitted answer '{raw_ans}' for question ID {question_id}")
+
+            # Validate and score strictly on the server
+            ok, result = self.server.quiz_manager.submit_answer(
+                self.connection_id,
+                question_id,
+                str(raw_ans)
+            )
+
+            if not ok:
+                self._safe_send(result)
+                return
+
+            # 1. Send evaluation result for the current answer
+            self._safe_send(result)
+
+            # 2. Check if this answer completed the quiz
+            if result.get("quiz_completed"):
+                self.server.record_quiz_completed()
+                end_summary = self.server.quiz_manager.get_quiz_end_summary(self.connection_id)
+                if end_summary:
+                    logger.info(
+                        f"[QUIZ] Sending final summary to {self.student_name}: "
+                        f"{end_summary.get('score')}/{end_summary.get('total_questions')}"
+                    )
+                    self._safe_send(end_summary)
+            else:
+                # 3. Deliver the next question
+                next_question = self.server.quiz_manager.get_current_question(self.connection_id)
+                if next_question:
+                    self.server.record_question_sent()
+                    logger.info(f"[QUIZ] Sending question {next_question['question_number']} to {self.student_name}")
+                    self._safe_send(next_question)
             
         elif msg_type == "ping":
             # Diagnostic ping/pong message
@@ -188,8 +271,9 @@ class ClientHandler(threading.Thread):
     def get_info(self) -> Dict[str, Any]:
         """
         Returns serializable state information for monitoring and dashboards.
+        Includes live quiz progress if a quiz session has been initiated.
         """
-        return {
+        base_info = {
             "connection_id": self.connection_id,
             "student_name": self.student_name or "Joining...",
             "ip": self.client_address[0],
@@ -197,3 +281,17 @@ class ClientHandler(threading.Thread):
             "connected_at": self.connected_at,
             "status": "connected" if self.is_active else "disconnected"
         }
+
+        # Attach quiz state if active
+        if hasattr(self.server, "quiz_manager"):
+            quiz_state = self.server.quiz_manager.get_player_state(self.connection_id)
+            if quiz_state:
+                base_info.update({
+                    "score": quiz_state["score"],
+                    "current_question": quiz_state["current_question_index"] + (0 if quiz_state["quiz_completed"] else 1),
+                    "total_questions": quiz_state["total_questions"],
+                    "quiz_completed": quiz_state["quiz_completed"],
+                    "percentage": quiz_state["percentage"]
+                })
+
+        return base_info

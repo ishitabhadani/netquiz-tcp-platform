@@ -1,0 +1,182 @@
+[
+  {
+    "id": 1,
+    "question": "Which transport layer protocol provides connection-oriented and reliable data transfer?",
+    "options": {
+      "A": "UDP",
+      "B": "TCP",
+      "C": "IP",
+      "D": "ICMP"
+    },
+    "correct_answer": "B",
+    "explanation": "TCP (Transmission Control Protocol) is connection-oriented and ensures reliable, sequenced byte-stream delivery."
+  },
+  {
+    "id": 2,
+    "question": "In Python socket programming, what does the socket.AF_INET constant specify?",
+    "options": {
+      "A": "IPv6 Address Family",
+      "B": "Bluetooth Protocol Family",
+      "C": "IPv4 Address Family",
+      "D": "Unix Domain Socket"
+    },
+    "correct_answer": "C",
+    "explanation": "AF_INET designates the IPv4 protocol family for 32-bit IP addressing."
+  },
+  {
+    "id": 3,
+    "question": "Which socket type is used for creating a TCP stream socket in Berkeley sockets?",
+    "options": {
+      "A": "SOCK_DGRAM",
+      "B": "SOCK_RAW",
+      "C": "SOCK_STREAM",
+      "D": "SOCK_SEQPACKET"
+    },
+    "correct_answer": "C",
+    "explanation": "SOCK_STREAM specifies a sequenced, reliable, two-way, connection-based byte stream (TCP)."
+  },
+  {
+    "id": 4,
+    "question": "How many packets are exchanged during a normal TCP connection establishment handshake?",
+    "options": {
+      "A": "Two (SYN, ACK)",
+      "B": "Three (SYN, SYN-ACK, ACK)",
+      "C": "Four (FIN, ACK, FIN, ACK)",
+      "D": "One (CONNECT)"
+    },
+    "correct_answer": "B",
+    "explanation": "The classic TCP 3-way handshake exchanges SYN, SYN-ACK, and ACK to synchronize sequence numbers."
+  },
+  {
+    "id": 5,
+    "question": "What is the primary role of a transport layer port number?",
+    "options": {
+      "A": "To identify the physical network adapter (NIC)",
+      "B": "To identify a specific host on a global IP network",
+      "C": "To identify a specific process or application on a host",
+      "D": "To encrypt application layer payloads"
+    },
+    "correct_answer": "C",
+    "explanation": "Port numbers provide process-to-process multiplexing and demultiplexing on the host."
+  },
+  {
+    "id": 6,
+    "question": "Why is message framing required when sending JSON over a TCP connection?",
+    "options": {
+      "A": "Because TCP drops corrupted packets automatically",
+      "B": "Because TCP is an unstructured byte stream without message boundaries",
+      "C": "Because JSON strings cannot contain ASCII characters",
+      "D": "Because port numbers change dynamically during transmission"
+    },
+    "correct_answer": "B",
+    "explanation": "TCP delivers a continuous byte stream; application-layer framing (such as newline delimiters) is required to identify where messages begin and end."
+  },
+  {
+    "id": 7,
+    "question": "Which socket option allows a server to immediately rebind to a local port without waiting for the TIME_WAIT state to expire?",
+    "options": {
+      "A": "SO_KEEPALIVE",
+      "B": "SO_BROADCAST",
+      "C": "SO_REUSEADDR",
+      "D": "SO_LINGER"
+    },
+    "correct_answer": "C",
+    "explanation": "SO_REUSEADDR allows the local socket address to be reused immediately, avoiding 'Address already in use' errors upon restart."
+  },
+  {
+    "id": 8,
+    "question": "In a concurrent TCP server, why is multithreading commonly utilized for client handling?",
+    "options": {
+      "A": "To reduce the server IP address count",
+      "B": "To prevent one blocking client from stalling other connected clients",
+      "C": "To convert TCP byte streams into UDP datagrams",
+      "D": "To bypass the operating system TCP stack"
+    },
+    "correct_answer": "B",
+    "explanation": "Spawning a thread per client allows each client's I/O and processing to proceed independently and concurrently."
+  },
+  {
+    "id": 9,
+    "question": "What does a return value of 0 bytes from socket.recv() indicate in TCP?",
+    "options": {
+      "A": "A buffer overflow occurred",
+      "B": "The peer has cleanly closed the connection (TCP FIN / EOF)",
+      "C": "A network timeout occurred",
+      "D": "Data packet was corrupted in transit"
+    },
+    "correct_answer": "B",
+    "explanation": "In TCP sockets, recv() returning 0 bytes indicates an end-of-file condition because the remote peer initiated connection teardown."
+  },
+  {
+    "id": 10,
+    "question": "Which protocol is connectionless and prioritizes minimal latency over guaranteed packet delivery?",
+    "options": {
+      "A": "TCP",
+      "B": "BGP",
+      "C": "UDP",
+      "D": "SSH"
+    },
+    "correct_answer": "C",
+    "explanation": "UDP (User Datagram Protocol) is a lightweight, connectionless protocol without acknowledgments or retransmissions."
+  },
+  {
+    "id": 11,
+    "question": "Which socket system call marks a bound socket as passive, ready to accept incoming client connections?",
+    "options": {
+      "A": "connect()",
+      "B": "bind()",
+      "C": "listen()",
+      "D": "select()"
+    },
+    "correct_answer": "C",
+    "explanation": "listen() marks the socket as passive and specifies the backlog queue size for pending connection requests."
+  },
+  {
+    "id": 12,
+    "question": "What mechanism does TCP use to prevent a fast sender from overwhelming a slow receiver's buffer?",
+    "options": {
+      "A": "Checksum validation",
+      "B": "Flow control with a sliding receiver window",
+      "C": "Address Resolution Protocol (ARP)",
+      "D": "Domain Name System (DNS)"
+    },
+    "correct_answer": "B",
+    "explanation": "TCP flow control uses the receiver window (rwnd) field in the TCP header to advertise available buffer space."
+  },
+  {
+    "id": 13,
+    "question": "In the standard Client-Server networking architecture, which entity initiates the connection?",
+    "options": {
+      "A": "The Server initiates to the Client",
+      "B": "The Client initiates to the Server",
+      "C": "The Router initiates to both simultaneously",
+      "D": "The DNS server initiates the connection"
+    },
+    "correct_answer": "B",
+    "explanation": "In client-server architecture, the server waits passively, and the client actively initiates the connection."
+  },
+  {
+    "id": 14,
+    "question": "What is the standard port range for well-known server ports reserved by IANA?",
+    "options": {
+      "A": "0 to 1023",
+      "B": "1024 to 49151",
+      "C": "49152 to 65535",
+      "D": "8000 to 9000"
+    },
+    "correct_answer": "A",
+    "explanation": "Ports 0 to 1023 are Well-Known Ports reserved for standard privileged services like HTTP (80) and HTTPS (443)."
+  },
+  {
+    "id": 15,
+    "question": "Why should quiz scores in a networked client-server application be evaluated strictly by the server?",
+    "options": {
+      "A": "Because clients cannot perform integer arithmetic",
+      "B": "To enforce security, trust boundaries, and prevent client tampering",
+      "C": "Because TCP headers automatically encrypt all calculations",
+      "D": "To reduce network bandwidth consumption"
+    },
+    "correct_answer": "B",
+    "explanation": "In secure distributed systems, the central server must maintain source-of-truth state and evaluate business logic to prevent untrusted client manipulation."
+  }
+]

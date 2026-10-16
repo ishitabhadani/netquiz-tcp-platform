@@ -34,7 +34,12 @@ class TCPServer:
     """
     Multithreaded TCP Server for NetQuiz Platform.
     """
-    def __init__(self, host: str = TCP_SERVER_HOST, port: int = TCP_SERVER_PORT) -> None:
+    def __init__(
+        self,
+        host: str = TCP_SERVER_HOST,
+        port: int = TCP_SERVER_PORT,
+        quiz_manager: Optional[Any] = None
+    ) -> None:
         self.host: str = host
         self.port: int = port
         self.server_socket: Optional[socket.socket] = None
@@ -45,10 +50,20 @@ class TCPServer:
         self.lock: threading.Lock = threading.Lock()
         self.accept_thread: Optional[threading.Thread] = None
 
-        # Networking Metrics
+        # Networking & Quiz Metrics
         self.total_connections: int = 0
         self.messages_sent: int = 0
         self.messages_received: int = 0
+        self.questions_sent: int = 0
+        self.answers_received: int = 0
+        self.completed_quizzes: int = 0
+
+        # Quiz Manager Reference
+        if quiz_manager is not None:
+            self.quiz_manager = quiz_manager
+        else:
+            from backend.quiz.quiz_manager import quiz_manager_instance
+            self.quiz_manager = quiz_manager_instance
 
     def start(self, run_in_background: bool = False) -> None:
         """
@@ -152,6 +167,21 @@ class TCPServer:
         with self.lock:
             self.messages_received += 1
 
+    def record_question_sent(self) -> None:
+        """Thread-safe counter increment for questions sent."""
+        with self.lock:
+            self.questions_sent += 1
+
+    def record_answer_received(self) -> None:
+        """Thread-safe counter increment for answers received."""
+        with self.lock:
+            self.answers_received += 1
+
+    def record_quiz_completed(self) -> None:
+        """Thread-safe counter increment for completed quizzes."""
+        with self.lock:
+            self.completed_quizzes += 1
+
     def get_status(self) -> Dict[str, Any]:
         """
         Returns thread-safe snapshot of TCP server status and active clients.
@@ -170,6 +200,9 @@ class TCPServer:
                 "total_connections": self.total_connections,
                 "messages_sent": self.messages_sent,
                 "messages_received": self.messages_received,
+                "questions_sent": self.questions_sent,
+                "answers_received": self.answers_received,
+                "completed_quizzes": self.completed_quizzes,
                 "clients": active_list
             }
 

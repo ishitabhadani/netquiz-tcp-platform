@@ -43,7 +43,11 @@ mini project/
 │   │   ├── tcp_server.py     # AF_INET SOCK_STREAM socket server on port 5000
 │   │   ├── test_client.py    # Standalone test client for student simulation
 │   │   └── test_stage2.py    # Automated 8-test verification suite
-│   ├── quiz/            # Question bank and quiz state engine (Stage 3)
+│   ├── quiz/            # Question bank and quiz state engine
+│   │   ├── questions.json           # 15 Computer Networks questions
+│   │   ├── quiz_manager.py          # Server-side QuizManager & PlayerQuizState
+│   │   ├── test_quiz_engine.py      # Unit test suite for quiz logic
+│   │   └── test_stage3_tcp_quiz.py  # Multi-user concurrent TCP quiz integration test
 │   ├── config.py        # Host & Port definitions (FastAPI: 8000, TCP: 5000)
 │   └── main.py          # FastAPI application entry point
 ├── frontend/
@@ -104,66 +108,104 @@ To solve this without complex binary length-headers, NetQuiz uses **Newline-Deli
 ```json
 {"type": "join", "student_name": "Ishita"}\n
 ```
-The `MessageFramingBuffer` accumulates incoming bytes, slices strings when encountering `\n`, decodes JSON objects, and handles malformed payloads without crashing the server.
+The `MessageFramingBuffer` accumulates incoming bytes, queues parsed messages, splits on `\n`, decodes JSON objects, and handles malformed payloads without crashing the server.
 
 ---
 
-## 4. How to Run and Test the TCP Layer
+## 4. Stage 3: Server-Side Quiz Engine & Player State
 
-### Run the Stage 2 Automated Test Suite
-A comprehensive 8-step test suite tests all edge cases (concurrency, ping/pong, disconnects, malformed JSON, and server rebound):
+Stage 3 adds application-layer quiz logic on top of the TCP socket layer while preserving strict network boundaries.
+
+### 4.1 System Interaction Flow
+
+```
+Client (Student)
+       │
+       │  1. TCP JSON Line {"type": "answer", "question_id": 1, "answer": "B"}\n
+       ▼
+ClientHandler Thread
+       │
+       │  2. submit_answer(connection_id, question_id, answer)
+       ▼
+QuizManager (Server Core)
+       │
+       │  3. Validates order, duplicate checks & evaluates correctness server-side
+       ▼
+ClientHandler Thread
+       │
+       │  4. Sends {"type": "answer_result", "correct": true, "current_score": 1}\n
+       │  5. Sends {"type": "question", "question_number": 2, ...}\n
+       ▼
+Client (Student)
+```
+
+### 4.2 Security & Server-Side Source-of-Truth
+- **Zero Client Trust:** The client never submits scores. The server evaluates candidate answers against `questions.json` and increments scores strictly within `PlayerQuizState`.
+- **Cheat Prevention:** Correct answers and explanations are stripped from question payloads before delivery over TCP.
+- **Strict Validation:** Duplicate submissions, out-of-order questions, invalid options (e.g. `Z`), and post-completion submissions are rejected with error messages without server disruption.
+
+---
+
+## 5. How to Run and Test
+
+### 1. Run All Automated Test Suites
 
 ```bash
 source venv/bin/activate
+
+# 1. Verify Stage 2 TCP Socket Networking (8 tests)
 python -m backend.networking.test_stage2
-```
-Expected output:
-```
-============================================================
-  ALL 8/8 TESTS COMPLETED SUCCESSFULLY!
-============================================================
+
+# 2. Verify Stage 3 QuizManager Logic & Validations (12 tests)
+python -m backend.quiz.test_quiz_engine
+
+# 3. Verify Stage 3 Multi-User Concurrent TCP Quiz (3 concurrent students)
+python -m backend.quiz.test_stage3_tcp_quiz
 ```
 
 ---
 
-### Run the Standalone TCP Server & Clients Manually
+### 2. Run Interactive CLI Quiz Client
 
-#### Step 1: Start the TCP Server
-Open **Terminal 1**:
+#### Step 1: Start TCP Server
+In **Terminal 1**:
 ```bash
 source venv/bin/activate
 python -m backend.networking.tcp_server
 ```
 
-#### Step 2: Connect Multiple Concurrent Clients
-Open **Terminal 2 (Student 1)**:
+#### Step 2: Play the Quiz Interactively in Terminal
+In **Terminal 2**:
 ```bash
 source venv/bin/activate
-python -m backend.networking.test_client Ishita --ping --stay 15
+python -m backend.networking.test_client Ishita --interactive
 ```
-
-Open **Terminal 3 (Student 2)**:
-```bash
-source venv/bin/activate
-python -m backend.networking.test_client Aarav --ping --stay 15
-```
-
-Open **Terminal 4 (Student 3)**:
-```bash
-source venv/bin/activate
-python -m backend.networking.test_client Riya --ping --stay 15
-```
-
-The TCP Server terminal will log 3 concurrent connections:
-```text
-[CONNECTION] New client connection from 127.0.0.1:62155
-[CLIENT] Student joined: 'Ishita' (ID: 857735c8)
-[SERVER] Active Clients: 3 | Total Connections: 3
-```
+The terminal client will connect via TCP port 5000, display each Computer Networks question, prompt you for `A/B/C/D`, display live server evaluations with explanations, and finish with a formatted results card!
 
 ---
 
-## 5. Web Platform Run Instructions (From Stage 1)
+### 3. Run Simultaneous Multi-Client Simulation
+
+In **Terminal 2 (Student A)**:
+```bash
+python -m backend.networking.test_client Ishita --quiz --answers A A C B C B C B B C
+```
+
+In **Terminal 3 (Student B)**:
+```bash
+python -m backend.networking.test_client Aarav --quiz --answers A A A A A B C B B C
+```
+
+In **Terminal 4 (Student C)**:
+```bash
+python -m backend.networking.test_client Riya --quiz --answers B C C B C B C B B C
+```
+
+Each client executes concurrently over TCP, receiving independent scores (Ishita: 8/10, Aarav: 5/10, Riya: 10/10) with verified state isolation.
+
+---
+
+## 6. Web Platform Run Instructions
 
 ### Start FastAPI Application Bridge
 ```bash
