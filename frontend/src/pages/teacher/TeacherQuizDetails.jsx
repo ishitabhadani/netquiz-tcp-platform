@@ -8,6 +8,30 @@ import {
 } from "../../services/api";
 import { navigateTo } from "../../services/router";
 
+function getNormalizedOptions(opts) {
+  if (!opts) return [];
+  if (Array.isArray(opts)) {
+    return opts.map((opt, idx) => ({
+      letter: String.fromCharCode(65 + idx),
+      text: String(opt),
+    }));
+  }
+  return Object.entries(opts).map(([key, val]) => ({
+    letter: String(key).toUpperCase(),
+    text: String(val),
+  }));
+}
+
+function formatQuizDate(dateStr) {
+  if (!dateStr) return "-";
+  try {
+    const d = new Date(String(dateStr).replace(" ", "T"));
+    return isNaN(d.getTime()) ? String(dateStr) : d.toLocaleDateString();
+  } catch {
+    return String(dateStr);
+  }
+}
+
 export function TeacherQuizDetails({ quizId }) {
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +122,9 @@ export function TeacherQuizDetails({ quizId }) {
                     {status}
                   </span>
                   <span className="quiz-type-pill">{quiz.type || "Unit Test"}</span>
-                  {quiz.subject && <span className="quiz-category-pill">{quiz.subject}</span>}
+                  {(quiz.category || quiz.subject) && (
+                    <span className="quiz-category-pill">{quiz.category || quiz.subject}</span>
+                  )}
                 </div>
 
                 <div className="quiz-id-pill">
@@ -180,20 +206,20 @@ export function TeacherQuizDetails({ quizId }) {
             {/* Quick Metrics */}
             <div className="details-metrics-row">
               <div className="metric-box">
-                <span className="metric-num">{quiz.questions?.length || 0}</span>
+                <span className="metric-num">{quiz.questions?.length || quiz.total_questions || 0}</span>
                 <span className="metric-text">Questions</span>
               </div>
               <div className="metric-box">
-                <span className="metric-num">{quiz.participants?.length || 0}</span>
+                <span className="metric-num">{quiz.participants_count ?? quiz.participants?.length ?? 0}</span>
                 <span className="metric-text">Participants</span>
               </div>
               <div className="metric-box">
-                <span className="metric-num">{quiz.leaderboard?.length || 0}</span>
+                <span className="metric-num">{quiz.completed_count ?? quiz.leaderboard?.length ?? 0}</span>
                 <span className="metric-text">Submissions</span>
               </div>
               <div className="metric-box">
                 <span className="metric-num">
-                  {new Date(quiz.created_at).toLocaleDateString()}
+                  {formatQuizDate(quiz.created_at)}
                 </span>
                 <span className="metric-text">Created On</span>
               </div>
@@ -202,43 +228,61 @@ export function TeacherQuizDetails({ quizId }) {
             {/* Questions List preview */}
             <div className="details-questions-section">
               <div className="section-title-wrap">
-                <h2>Quiz Questions ({quiz.questions?.length || 0})</h2>
+                <h2>Quiz Questions ({quiz.questions?.length || quiz.total_questions || 0})</h2>
                 <p>Teacher View: correct answers are visible below for grading verification.</p>
               </div>
 
               <div className="details-questions-list">
-                {quiz.questions?.map((q, idx) => (
-                  <div key={q.id || idx} className="details-q-card">
-                    <div className="details-q-header">
-                      <span className="q-badge">Question {idx + 1}</span>
-                      <span className="q-meta">
-                        {q.points || 1} pt &bull; ⏱️ {q.time_limit || 30}s &bull; Type: {q.type}
-                      </span>
+                {quiz.questions?.map((q, idx) => {
+                  const optionsList = getNormalizedOptions(q.options);
+                  return (
+                    <div key={q.id || idx} className="details-q-card">
+                      <div className="details-q-header">
+                        <span className="q-badge">Question {idx + 1}</span>
+                        <span className="q-meta">
+                          {q.points || 1} pt &bull; ⏱️ {q.time_limit || 30}s &bull; Type: {q.type || "mcq"}
+                        </span>
+                      </div>
+
+                      <p className="details-q-prompt">{q.question}</p>
+
+                      <div className="details-options-list">
+                        {optionsList.map(({ letter, text }) => {
+                          const isCorrect = String(q.correct_answer || "").toUpperCase() === letter;
+
+                          return (
+                            <div
+                              key={letter}
+                              className={`details-opt-item ${isCorrect ? "opt-correct" : ""}`}
+                            >
+                              <span className="details-opt-letter">{letter}</span>
+                              <span className="details-opt-text">{text}</span>
+                              {isCorrect && (
+                                <span className="details-correct-badge">✓ Correct Answer</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {q.explanation && (
+                        <div
+                          style={{
+                            fontSize: "0.8125rem",
+                            color: "var(--text-sub)",
+                            marginTop: "0.35rem",
+                            background: "rgba(99, 102, 241, 0.05)",
+                            padding: "0.4rem 0.6rem",
+                            borderRadius: "6px",
+                            border: "1px solid rgba(99, 102, 241, 0.15)",
+                          }}
+                        >
+                          <span>💡 <strong>Explanation:</strong> {q.explanation}</span>
+                        </div>
+                      )}
                     </div>
-
-                    <p className="details-q-prompt">{q.question}</p>
-
-                    <div className="details-options-list">
-                      {q.options?.map((opt, oIdx) => {
-                        const letter = String.fromCharCode(65 + oIdx);
-                        const isCorrect = q.correct_answer === letter;
-
-                        return (
-                          <div
-                            key={letter}
-                            className={`details-opt-item ${isCorrect ? "opt-correct" : ""}`}
-                          >
-                            <span className="details-opt-letter">{letter}</span>
-                            <span className="details-opt-text">{opt}</span>
-                            {isCorrect && (
-                              <span className="details-correct-badge">✓ Correct Answer</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>
