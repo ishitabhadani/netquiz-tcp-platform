@@ -1,7 +1,11 @@
 import React from "react";
 import { StatusBadge } from "./StatusBadge";
 
-export function Navbar({ isOnline, isLoading, onRefresh, currentView, onNavHome, onNavLeaderboard }) {
+export function Navbar({ isOnline, isLoading, onRefresh, currentView, onNavHome, onNavLeaderboard, serverStatus }) {
+  const tcpAddr = serverStatus?.host && serverStatus?.port
+    ? `${serverStatus.host}:${serverStatus.port}`
+    : "127.0.0.1:5000";
+
   return (
     <header className="navbar-container">
       <div className="navbar-content">
@@ -46,7 +50,7 @@ export function Navbar({ isOnline, isLoading, onRefresh, currentView, onNavHome,
         <div className="navbar-actions">
           <div className="endpoint-pill">
             <span className="endpoint-proto">IPv4 TCP</span>
-            <span className="endpoint-addr">127.0.0.1:5000</span>
+            <span className="endpoint-addr">{tcpAddr}</span>
           </div>
 
           <StatusBadge isOnline={isOnline} isLoading={isLoading} />

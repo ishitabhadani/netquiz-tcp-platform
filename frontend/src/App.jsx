@@ -131,6 +131,7 @@ function App() {
         currentView={view}
         onNavHome={handleBackToHome}
         onNavLeaderboard={handleViewLeaderboard}
+        serverStatus={serverStatus}
       />
 
       {/* Session Expired / Interrupted Notice Banner */}
@@ -157,7 +158,7 @@ function App() {
             <span className="banner-icon">⚠️</span>
             <span>
               <strong>TCP Socket Server Offline:</strong> FastAPI is unable to
-              reach port 5000. Start the backend via{" "}
+              reach the internal TCP socket server. In local development, start the backend via{" "}
               <code>uvicorn backend.main:app --port 8000</code>.
             </span>
             <button className="btn-banner-retry" onClick={fetchPlatformData}>
@@ -203,7 +204,7 @@ function App() {
         )}
       </main>
 
-      <Footer isOnline={isOnline} />
+      <Footer isOnline={isOnline} serverStatus={serverStatus} />
     </div>
   );
 }

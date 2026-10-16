@@ -1,6 +1,9 @@
 import React from "react";
 
-export function NetworkArchitecture({ isOnline = true }) {
+export function NetworkArchitecture({ isOnline = true, serverStatus }) {
+  const tcpHost = serverStatus?.host || "127.0.0.1";
+  const tcpPort = serverStatus?.port || 5000;
+
   return (
     <section className="architecture-container">
       <div className="section-header-block">
@@ -20,7 +23,7 @@ export function NetworkArchitecture({ isOnline = true }) {
               <span className="server-icon">🖥️</span>
               <div>
                 <div className="server-title">NETQUIZ TCP SERVER</div>
-                <div className="server-coords">127.0.0.1 : 5000</div>
+                <div className="server-coords">{tcpHost} : {tcpPort} (Internal Socket)</div>
               </div>
               <span className={`server-pill ${isOnline ? "pill-online" : "pill-offline"}`}>
                 {isOnline ? "ACTIVE LISTENER" : "OFFLINE"}

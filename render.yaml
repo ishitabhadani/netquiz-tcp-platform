@@ -19,10 +19,7 @@ services:
       - key: FASTAPI_HOST
         value: 0.0.0.0
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: netquiz-frontend
-          property: host
+        value: https://netquiz-frontend.onrender.com
 
   # 2. React / Vite Web Client
   - type: web
@@ -37,8 +34,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: netquiz-backend
-          property: host
-          valueTemplate: https://${host}/api
+        value: https://netquiz-backend-rsba.onrender.com/api

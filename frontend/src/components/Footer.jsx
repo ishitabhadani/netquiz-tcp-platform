@@ -1,17 +1,19 @@
 import React from "react";
 
-export function Footer({ isOnline = true }) {
+export function Footer({ isOnline = true, serverStatus }) {
+  const tcpPort = serverStatus?.port ? `${serverStatus.port} (Internal)` : "5000 (Internal)";
+
   return (
     <footer className="footer-container">
       <div className="footer-top-row">
         <div className="footer-pills">
           <span className="footer-pill">
             <span className="pill-dot"></span>
-            TCP Port: <strong>5000</strong>
+            TCP Socket: <strong>{tcpPort}</strong>
           </span>
           <span className="footer-pill">
             <span className="pill-dot"></span>
-            FastAPI Bridge: <strong>8000</strong>
+            API Bridge: <strong>FastAPI REST</strong>
           </span>
           <span className="footer-pill">
             <span className="pill-dot"></span>

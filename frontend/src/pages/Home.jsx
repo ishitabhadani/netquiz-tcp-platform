@@ -157,7 +157,9 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh, o
           <div className="join-card-footer">
             <div className="footer-spec-item">
               <span className="spec-label">Target Protocol</span>
-              <span className="spec-val">TCP (127.0.0.1:5000)</span>
+              <span className="spec-val">
+                TCP Socket ({serverStatus?.host || "127.0.0.1"}:{serverStatus?.port || 5000})
+              </span>
             </div>
             <div className="footer-spec-item">
               <span className="spec-label">Session Scope</span>
@@ -175,13 +177,13 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh, o
       <section className="section-block">
         <div className="section-header-compact">
           <h3 className="section-sub-title">Live Networking &amp; Quiz Parameters</h3>
-          <span className="section-tag">Queried from FastAPI Port 8000</span>
+          <span className="section-tag">Internal TCP Server &bull; FastAPI Bridge</span>
         </div>
         <NetworkStatCards serverStatus={serverStatus} quizInfo={quizInfo} />
       </section>
 
       {/* Visual Network Architecture Diagram */}
-      <NetworkArchitecture isOnline={isOnline} />
+      <NetworkArchitecture isOnline={isOnline} serverStatus={serverStatus} />
 
       {/* Live Server Terminal Status Card */}
       <section className="section-block">
@@ -193,7 +195,7 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh, o
               <span className="t-dot dot-green" />
             </div>
             <span className="terminal-title">
-              TCP SOCKET SERVER RUNTIME &bull; 127.0.0.1:5000
+              TCP SOCKET SERVER RUNTIME &bull; Internal Socket ({serverStatus?.host || "127.0.0.1"}:{serverStatus?.port || 5000})
             </span>
             <span className="terminal-badge">LIVE METRICS</span>
           </div>
@@ -204,7 +206,7 @@ export function Home({ serverStatus, quizInfo, isOnline, isLoading, onRefresh, o
             </div>
             <div className="terminal-row">
               <span className="t-key">LISTEN_INTERFACE</span>
-              <span className="t-val">127.0.0.1:5000 (SO_REUSEADDR Active)</span>
+              <span className="t-val">{serverStatus?.host || "127.0.0.1"}:{serverStatus?.port || 5000} (Internal Service Loopback &bull; SO_REUSEADDR)</span>
             </div>
             <div className="terminal-row">
               <span className="t-key">STREAM_FRAMING</span>

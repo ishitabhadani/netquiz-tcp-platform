@@ -79,6 +79,8 @@ origins = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://netquiz-frontend.onrender.com",
+    "http://netquiz-frontend.onrender.com",
 ]
 
 # Allow custom deployed frontend origin via FRONTEND_URL environment variable
@@ -86,12 +88,18 @@ frontend_url_env = os.getenv("FRONTEND_URL")
 if frontend_url_env:
     for url in frontend_url_env.split(","):
         clean_url = url.strip().rstrip("/")
-        if clean_url and clean_url not in origins:
-            origins.append(clean_url)
+        if clean_url:
+            if clean_url not in origins:
+                origins.append(clean_url)
+            # Ensure both with and without https:// are handled if scheme omitted
+            if not clean_url.startswith("http://") and not clean_url.startswith("https://"):
+                origins.append(f"https://{clean_url}")
+                origins.append(f"http://{clean_url}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"^https:\/\/.*\.onrender\.com$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],

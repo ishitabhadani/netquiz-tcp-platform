@@ -6,18 +6,20 @@ export function NetworkStatCards({ serverStatus, quizInfo }) {
   const completedQuizzes = serverStatus?.completed_quizzes ?? 0;
   const totalQuestions = quizInfo?.total_questions_available ?? 15;
   const questionsPerQuiz = quizInfo?.questions_per_quiz ?? 10;
+  const tcpPort = serverStatus?.port ? `Port ${serverStatus.port}` : "Port 5000";
+  const tcpHost = serverStatus?.host || "127.0.0.1";
 
   const cards = [
     {
       title: "TCP Transport",
-      value: "Port 5000",
+      value: tcpPort,
       subtext: "SOCK_STREAM • Byte Stream",
       badge: "Transport Layer",
       icon: "🔌"
     },
     {
       title: "IPv4 Network",
-      value: "127.0.0.1",
+      value: tcpHost,
       subtext: "AF_INET • 32-Bit Address",
       badge: "Network Layer",
       icon: "🌐"
